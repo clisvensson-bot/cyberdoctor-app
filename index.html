@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      <title>CYBERDOCTOR — Holistic AI Health Advisor</title>
+    <meta name="theme-color" content="#0a0a1a"/>
+    <style>
+          *{box-sizing:border-box;margin:0;padding:0}
+          body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#e3f2fd;min-height:100vh;display:flex;flex-direction:column}
+          .header{background:linear-gradient(135deg,#0d2137,#0a0a1a);padding:18px 20px;text-align:center;border-bottom:1px solid #1e3a5f}
+          h1{font-size:1.7rem;font-weight:800;letter-spacing:.25em;color:#4fc3f7;margin:4px 0 2px}
+          .tagline{font-size:.72rem;color:#546e7a;letter-spacing:.12em;text-transform:uppercase}
+          .powered{font-size:.62rem;color:#37474f;margin-top:3px}
+          .messages{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:12px}
+          .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;gap:16px;min-height:300px}
+          .pulse{width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,#1565c0,#0288d1);display:flex;align-items:center;justify-content:center;font-size:38px;animation:pulse 2.5s infinite}
+          @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(79,195,247,.4)}50%{box-shadow:0 0 0 22px rgba(79,195,247,0)}}
+          .empty h2{color:#4fc3f7;font-size:1.1rem}
+          .empty p{color:#546e7a;font-size:.88rem;line-height:1.6;max-width:280px}
+                .tags{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+          .tag{background:#0d2137;border:1px solid #1e3a5f;border-radius:20px;padding:4px 12px;font-size:.68rem;color:#90caf9}
+                     .bubble{max-width:86%;padding:12px 16px;border-radius:18px;font-size:.9rem;line-height:1.55;animation:fadein .3s ease}
+          @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+          .user{background:#1565c0;align-self:flex-end;border-bottom-right-radius:4px}
+          .ai{background:#0d2137;border:1px solid #1e3a5f;align-self:flex-start;border-bottom-left-radius:4px}
+          .lbl{font-size:.63rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;color:#4fc3f7}
+          .user .lbl{color:#81d4fa}
+          .emo{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+          .em{font-size:.6rem;background:rgba(79,195,247,.08);border:1px solid rgba(79,195,247,.2);border-radius:10px;padding:2px 8px;color:#4fc3f7}
+          .controls{padding:18px 20px 28px;border-top:1px solid #1e3a5f}
+                   .btn{width:100%;padding:17px;border:none;border-radius:14px;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
+          .btn-on{background:linear-gradient(135deg,#1565c0,#0288d1);color:#fff}
+          .btn-on:hover{filter:brightness(1.1);transform:translateY(-1px)}
+          .btn-off{background:linear-gradient(135deg,#b71c1c,#c62828);color:#fff}
+          .btn-wait{background:#1e3a5f;color:#90caf9;cursor:not-allowed}
+          .status{text-align:center;margin-top:10px;font-size:.73rem;color:#546e7a;display:flex;align-items:center;justify-content:center;gap:6px}
+          .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+          .dlive{background:#4caf50;animation:blink 1.2s infinite}
+          .doff{background:#37474f}
+          @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+                   .disc{font-size:.62rem;color:#37474f;text-align:center;margin-top:8px;padding:0 10px}
+          .err{background:#1a0a0a;border:1px solid #b71c1c;border-radius:10px;padding:12px 16px;color:#ef9a9a;font-size:.82rem;display:none;margin-bottom:10px}
+        </style>
+  </head>
+  <body>
+    <div class="header">
+        <div style="font-size:28px">🔬</div>div>
+        <h1>CYBERDOCTOR</h1>
+      <div class="tagline">Holistic &amp; Quantum Medicine AI Advisor</div>div>
+      <div class="powered">Powered by Dialadoctor.global &middot; Dr. Carl Svensson</div>div>
+    </div>div>
+  <div class="messages" id="msgs">
+    <div class="empty" id="empty">
+        <div class="pulse">🧬</div>div>
+        <h2>Ready for your consultation</h2>
+        <p>Speak about your health concerns. CYBERDOCTOR responds with holistic and quantum medicine guidance only.</p>
+        <div class="tags">
+              <span class="tag">🌿 Natural Remedies</span>span>
+              <span class="tag">⚛️ Quantum Medicine</span>span>
+              <span class="tag">🌊 Bioresonance</span>span>
+              <span class="tag">🧘 Holistic Healing</span>span>
+              <span class="tag">🌱 Herbal Medicine</span>span>
+        </div>div>
+    </div>div>
+  </div>div>
+  <div class="controls">
+    <div class="err" id="err"></div>div>
+    <button class="btn btn-on" id="btn" onclick="toggle()">
+        <span id="bicon">🎙️</span>span>
+        <span id="btxt">Start Consultation</span>span>
+    </button>button>
+    <div class="status">
+        <span class="dot doff" id="sdot"></span>span>
+        <span id="stxt">Ready</span>span>
+    </div>div>
+    <div class="disc">For informational purposes only. Not a substitute for professional medical advice. In emergencies call 112 / 999 / 911.</div>div>
+  </div>div>
+  <script type="module">
+  import { VoiceProvider, useVoice, VoiceReadyState } from 'https://esm.sh/@humeai/voice-react@0.1.8';
+  import { createElement as h, useEffect, useRef } from 'https://esm.sh/react@18';
+  import { createRoot } from 'https://esm.sh/react-dom@18/client';
+  const API_KEY = 'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d';
+  const CONFIG_ID = '1a4efd76-4e79-41dc-9c34-46ca454ea302';
+  function App() {
+      const { connect, disconnect, readyState, messages } = useVoice();
+      const isOn = readyState === VoiceReadyState.OPEN;
+      const isWait = readyState === VoiceReadyState.CONNECTING;
+      const msgs = messages.filter(m => m.type === 'user_message' || m.type === 'assistant_message');
+      const endRef = useRef(null);
+      useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+    useEffect(() => {
+      const btn = document.getElementById('btn');
+          const bicon = document.getElementById('bicon');
+          const btxt = document.getElementById('btxt');
+          const sdot = document.getElementById('sdot');
+          const stxt = document.getElementById('stxt');
+          const empty = document.getElementById('empty');
+      if (isWait) {
+              btn.className = 'btn btn-wait';
+              bicon.textContent = '⏳'; btxt.textContent = 'Connecting...';
+              sdot.className = 'dot doff'; stxt.textContent = 'Connecting to CYBERDOCTOR...';
+      } else if (isOn) {
+              btn.className = 'btn btn-off';
+              bicon.textContent = '⏹️'; btxt.textContent = 'End Consultation';
+              sdot.className = 'dot dlive'; stxt.textContent = 'Live — speak now';
+              if (empty) empty.style.display = 'none';
+    } else {
+              btn.className = 'btn btn-on';
+                   bicon.textContent = '🎙️'; btxt.textContent = 'Start Consultation';
+              sdot.className = 'dot doff'; stxt.textContent = 'Ready';
+      }
+          window._humeConnect = connect;
+        window._humeDisconnect = disconnect;
+      window._humeIsOn = isOn;
+      window._humeIsWait = isWait;
+          const container = document.getElementById('msgs');
+            container.querySelectorAll('.bubble').forEach(b => b.remove());
+      msgs.forEach((msg) => {
+                  const div = document.createElement('div');
+              div.className = 'bubble ' + (msg.type === 'user_message' ? 'user' : 'ai');
+              const lbl = document.createElement('div');
+        lbl.className = 'lbl';
+              lbl.textContent = msg.type === 'user_message' ? 'You' : 'CYBERDOCTOR';
+              const txt = document.createElement('p');
+              txt.textContent = msg.message?.content || '';
+                    div.appendChild(lbl);
+        div.appendChild(txt);
+              if (msg.type === 'user_message' && msg.models?.prosody?.scores) {
+          const scores = msg.models.prosody.scores;
+          const top = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,3);
+                        if (top.length) {
+            const emo = document.createElement('div');
+                                    emo.className = 'emo';
+                                    top.forEach(([k,v]) => {
+                                                  const e = document.createElement('span');
+                                                  e.className = 'em';
+              e.textContent = k + ' ' + (v*100).toFixed(0) + '%';
+                                                  emo.appendChild(e);
+            });
+                          div.appendChild(emo);
+    }
+              }
+              container.insertBefore(div, null);
+    });
+        endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [readyState, messages]);
+      return h('span', null, h('span', { ref: endRef }));
+    }
+  function Shell() {
+      return h(VoiceProvider, { auth: { type: 'apiKey', value: API_KEY }, configId: CONFIG_ID }, h(App));
+  }
+  window.toggle = function() {
+    if (window._humeIsWait) return;
+                    if (window._humeIsOn) window._humeDisconnect();
+    else window._humeConnect();
+    };
+                const msgsDiv = document.getElementById('msgs');
+  const anchor = document.createElement('div');
+  msgsDiv.appendChild(anchor);
+                      createRoot(anchor).render(h(Shell));
+    </script>
+  </body>body>
+</html>html></p></h2></h1>
+  </body>
+    </style></title>
+  </head>
