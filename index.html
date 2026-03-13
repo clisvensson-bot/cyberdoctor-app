@@ -1,167 +1,245 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-      <meta charset="UTF-8"/>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-      <title>CYBERDOCTOR — Holistic AI Health Advisor</title>
-    <meta name="theme-color" content="#0a0a1a"/>
-    <style>
-          *{box-sizing:border-box;margin:0;padding:0}
-          body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#e3f2fd;min-height:100vh;display:flex;flex-direction:column}
-          .header{background:linear-gradient(135deg,#0d2137,#0a0a1a);padding:18px 20px;text-align:center;border-bottom:1px solid #1e3a5f}
-          h1{font-size:1.7rem;font-weight:800;letter-spacing:.25em;color:#4fc3f7;margin:4px 0 2px}
-          .tagline{font-size:.72rem;color:#546e7a;letter-spacing:.12em;text-transform:uppercase}
-          .powered{font-size:.62rem;color:#37474f;margin-top:3px}
-          .messages{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:12px}
-          .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;gap:16px;min-height:300px}
-          .pulse{width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,#1565c0,#0288d1);display:flex;align-items:center;justify-content:center;font-size:38px;animation:pulse 2.5s infinite}
-          @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(79,195,247,.4)}50%{box-shadow:0 0 0 22px rgba(79,195,247,0)}}
-          .empty h2{color:#4fc3f7;font-size:1.1rem}
-          .empty p{color:#546e7a;font-size:.88rem;line-height:1.6;max-width:280px}
-                .tags{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
-          .tag{background:#0d2137;border:1px solid #1e3a5f;border-radius:20px;padding:4px 12px;font-size:.68rem;color:#90caf9}
-                     .bubble{max-width:86%;padding:12px 16px;border-radius:18px;font-size:.9rem;line-height:1.55;animation:fadein .3s ease}
-          @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-          .user{background:#1565c0;align-self:flex-end;border-bottom-right-radius:4px}
-          .ai{background:#0d2137;border:1px solid #1e3a5f;align-self:flex-start;border-bottom-left-radius:4px}
-          .lbl{font-size:.63rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;color:#4fc3f7}
-          .user .lbl{color:#81d4fa}
-          .emo{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
-          .em{font-size:.6rem;background:rgba(79,195,247,.08);border:1px solid rgba(79,195,247,.2);border-radius:10px;padding:2px 8px;color:#4fc3f7}
-          .controls{padding:18px 20px 28px;border-top:1px solid #1e3a5f}
-                   .btn{width:100%;padding:17px;border:none;border-radius:14px;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
-          .btn-on{background:linear-gradient(135deg,#1565c0,#0288d1);color:#fff}
-          .btn-on:hover{filter:brightness(1.1);transform:translateY(-1px)}
-          .btn-off{background:linear-gradient(135deg,#b71c1c,#c62828);color:#fff}
-          .btn-wait{background:#1e3a5f;color:#90caf9;cursor:not-allowed}
-          .status{text-align:center;margin-top:10px;font-size:.73rem;color:#546e7a;display:flex;align-items:center;justify-content:center;gap:6px}
-          .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
-          .dlive{background:#4caf50;animation:blink 1.2s infinite}
-          .doff{background:#37474f}
-          @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-                   .disc{font-size:.62rem;color:#37474f;text-align:center;margin-top:8px;padding:0 10px}
-          .err{background:#1a0a0a;border:1px solid #b71c1c;border-radius:10px;padding:12px 16px;color:#ef9a9a;font-size:.82rem;display:none;margin-bottom:10px}
-        </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CYBERDOCTOR</title>
+  <meta name="theme-color" content="#0a0a1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0a0a1a; color: #e3f2fd; min-height: 100vh; display: flex; flex-direction: column; }
+    .header { background: linear-gradient(135deg, #0d2137, #0a0a1a); padding: 18px 20px; text-align: center; border-bottom: 1px solid #1e3a5f; }
+    .logo { font-size: 30px; margin-bottom: 4px; }
+    h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: 0.25em; color: #4fc3f7; margin: 2px 0; }
+    .tagline { font-size: 0.72rem; color: #546e7a; letter-spacing: 0.1em; text-transform: uppercase; }
+    .powered { font-size: 0.62rem; color: #37474f; margin-top: 3px; }
+    .messages { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; min-height: 200px; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; gap: 16px; flex: 1; }
+    .pulse-icon { width: 84px; height: 84px; border-radius: 50%; background: linear-gradient(135deg, #1565c0, #0288d1); display: flex; align-items: center; justify-content: center; font-size: 38px; animation: pulse 2.5s infinite; }
+    @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(79,195,247,0.4); } 50% { box-shadow: 0 0 0 22px rgba(79,195,247,0); } }
+    .empty-state h2 { color: #4fc3f7; font-size: 1.1rem; }
+    .empty-state p { color: #546e7a; font-size: 0.88rem; line-height: 1.6; max-width: 280px; }
+    .feature-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .feature-tag { background: #0d2137; border: 1px solid #1e3a5f; border-radius: 20px; padding: 4px 12px; font-size: 0.68rem; color: #90caf9; }
+    .bubble { max-width: 86%; padding: 12px 16px; border-radius: 18px; font-size: 0.9rem; line-height: 1.55; }
+    .bubble.user { background: #1565c0; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .bubble.ai { background: #0d2137; border: 1px solid #1e3a5f; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .bubble-label { font-size: 0.63rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; color: #4fc3f7; }
+    .bubble.user .bubble-label { color: #81d4fa; }
+    .controls { padding: 18px 20px 28px; border-top: 1px solid #1e3a5f; }
+    .main-btn { width: 100%; padding: 17px; border: none; border-radius: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
+    .btn-connect { background: linear-gradient(135deg, #1565c0, #0288d1); color: white; }
+    .btn-disconnect { background: linear-gradient(135deg, #b71c1c, #c62828); color: white; }
+               .btn-loading { background: #1e3a5f; color: #90caf9; cursor: not-allowed; }
+    .status-bar { text-align: center; margin-top: 10px; font-size: 0.73rem; color: #546e7a; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .dot-live { background: #4caf50; animation: blink 1.2s infinite; }
+    .dot-off { background: #37474f; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+                     .disclaimer { font-size: 0.62rem; color: #37474f; text-align: center; margin-top: 8px; padding: 0 10px; }
+    #error-box { background: #1a0a0a; border: 1px solid #b71c1c; border-radius: 10px; padding: 12px 16px; color: #ef9a9a; font-size: 0.82rem; margin-bottom: 10px; display: none; }
+    </style>
   </head>
   <body>
-    <div class="header">
-        <div style="font-size:28px">🔬</div>div>
-        <h1>CYBERDOCTOR</h1>
-      <div class="tagline">Holistic &amp; Quantum Medicine AI Advisor</div>div>
-      <div class="powered">Powered by Dialadoctor.global &middot; Dr. Carl Svensson</div>div>
-    </div>div>
-  <div class="messages" id="msgs">
-    <div class="empty" id="empty">
-        <div class="pulse">🧬</div>div>
+  
+  <div class="header">
+    <div class="logo">&#x1F52C;</div>div>
+    <h1>CYBERDOCTOR</h1>
+    <div class="tagline">Holistic &amp; Quantum Medicine AI Advisor</div>div>
+    <div class="powered">Powered by Dialadoctor.global &middot; Dr. Carl Svensson</div>div>
+  </div>div>
+  
+  <div class="messages" id="messages">
+    <div class="empty-state" id="empty-state">
+        <div class="pulse-icon">&#x1F9EC;</div>div>
         <h2>Ready for your consultation</h2>
         <p>Speak about your health concerns. CYBERDOCTOR responds with holistic and quantum medicine guidance only.</p>
-        <div class="tags">
-              <span class="tag">🌿 Natural Remedies</span>span>
-              <span class="tag">⚛️ Quantum Medicine</span>span>
-              <span class="tag">🌊 Bioresonance</span>span>
-              <span class="tag">🧘 Holistic Healing</span>span>
-              <span class="tag">🌱 Herbal Medicine</span>span>
+        <div class="feature-tags">
+              <span class="feature-tag">&#x1F33F; Natural Remedies</span>span>
+              <span class="feature-tag">&#x269B;&#xFE0F; Quantum Medicine</span>span>
+              <span class="feature-tag">&#x1F30A; Bioresonance</span>span>
+              <span class="feature-tag">&#x1F9D8; Holistic Healing</span>span>
+              <span class="feature-tag">&#x1F331; Herbal Medicine</span>span>
         </div>div>
     </div>div>
   </div>div>
+  
   <div class="controls">
-    <div class="err" id="err"></div>div>
-    <button class="btn btn-on" id="btn" onclick="toggle()">
-        <span id="bicon">🎙️</span>span>
-        <span id="btxt">Start Consultation</span>span>
+    <div id="error-box"></div>div>
+    <button class="main-btn btn-connect" id="main-btn" onclick="handleToggle()">
+        <span id="btn-icon">&#x1F3A4;</span>span>
+        <span id="btn-text">Start Consultation</span>span>
     </button>button>
-    <div class="status">
-        <span class="dot doff" id="sdot"></span>span>
-        <span id="stxt">Ready</span>span>
+    <div class="status-bar">
+        <span class="status-dot dot-off" id="status-dot"></span>span>
+        <span id="status-text">Ready</span>span>
     </div>div>
-    <div class="disc">For informational purposes only. Not a substitute for professional medical advice. In emergencies call 112 / 999 / 911.</div>div>
+    <div class="disclaimer">For informational purposes only. Not a substitute for professional medical advice. In emergencies call 112 / 999 / 911.</div>div>
   </div>div>
+  
   <script type="module">
-  import { VoiceProvider, useVoice, VoiceReadyState } from 'https://esm.sh/@humeai/voice-react@0.1.8';
-  import { createElement as h, useEffect, useRef } from 'https://esm.sh/react@18';
-  import { createRoot } from 'https://esm.sh/react-dom@18/client';
+  import { Hume, HumeClient } from 'https://esm.sh/hume';
+  
   const API_KEY = 'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d';
   const CONFIG_ID = '1a4efd76-4e79-41dc-9c34-46ca454ea302';
-  function App() {
-      const { connect, disconnect, readyState, messages } = useVoice();
-      const isOn = readyState === VoiceReadyState.OPEN;
-      const isWait = readyState === VoiceReadyState.CONNECTING;
-      const msgs = messages.filter(m => m.type === 'user_message' || m.type === 'assistant_message');
-      const endRef = useRef(null);
-      useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-    useEffect(() => {
-      const btn = document.getElementById('btn');
-          const bicon = document.getElementById('bicon');
-          const btxt = document.getElementById('btxt');
-          const sdot = document.getElementById('sdot');
-          const stxt = document.getElementById('stxt');
-          const empty = document.getElementById('empty');
-      if (isWait) {
-              btn.className = 'btn btn-wait';
-              bicon.textContent = '⏳'; btxt.textContent = 'Connecting...';
-              sdot.className = 'dot doff'; stxt.textContent = 'Connecting to CYBERDOCTOR...';
-      } else if (isOn) {
-              btn.className = 'btn btn-off';
-              bicon.textContent = '⏹️'; btxt.textContent = 'End Consultation';
-              sdot.className = 'dot dlive'; stxt.textContent = 'Live — speak now';
-              if (empty) empty.style.display = 'none';
-    } else {
-              btn.className = 'btn btn-on';
-                   bicon.textContent = '🎙️'; btxt.textContent = 'Start Consultation';
-              sdot.className = 'dot doff'; stxt.textContent = 'Ready';
-      }
-          window._humeConnect = connect;
-        window._humeDisconnect = disconnect;
-      window._humeIsOn = isOn;
-      window._humeIsWait = isWait;
-          const container = document.getElementById('msgs');
-            container.querySelectorAll('.bubble').forEach(b => b.remove());
-      msgs.forEach((msg) => {
-                  const div = document.createElement('div');
-              div.className = 'bubble ' + (msg.type === 'user_message' ? 'user' : 'ai');
-              const lbl = document.createElement('div');
-        lbl.className = 'lbl';
-              lbl.textContent = msg.type === 'user_message' ? 'You' : 'CYBERDOCTOR';
-              const txt = document.createElement('p');
-              txt.textContent = msg.message?.content || '';
-                    div.appendChild(lbl);
-        div.appendChild(txt);
-              if (msg.type === 'user_message' && msg.models?.prosody?.scores) {
-          const scores = msg.models.prosody.scores;
-          const top = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,3);
-                        if (top.length) {
-            const emo = document.createElement('div');
-                                    emo.className = 'emo';
-                                    top.forEach(([k,v]) => {
-                                                  const e = document.createElement('span');
-                                                  e.className = 'em';
-              e.textContent = k + ' ' + (v*100).toFixed(0) + '%';
-                                                  emo.appendChild(e);
-            });
-                          div.appendChild(emo);
-    }
-              }
-              container.insertBefore(div, null);
-    });
-        endRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [readyState, messages]);
-      return h('span', null, h('span', { ref: endRef }));
-    }
-  function Shell() {
-      return h(VoiceProvider, { auth: { type: 'apiKey', value: API_KEY }, configId: CONFIG_ID }, h(App));
+  
+  let socket = null;
+  let audioContext = null;
+  let mediaStream = null;
+  let recorder = null;
+  let isConnected = false;
+  let audioQueue = [];
+  let isPlaying = false;
+  
+  function showError(msg) {
+      const box = document.getElementById('error-box');
+    box.textContent = msg;
+    box.style.display = 'block';
+      setTimeout(() => { box.style.display = 'none'; }, 5000);
   }
-  window.toggle = function() {
-    if (window._humeIsWait) return;
-                    if (window._humeIsOn) window._humeDisconnect();
-    else window._humeConnect();
+  
+  function setUIState(state) {
+      const btn = document.getElementById('main-btn');
+      const icon = document.getElementById('btn-icon');
+      const text = document.getElementById('btn-text');
+    const dot = document.getElementById('status-dot');
+      const statusText = document.getElementById('status-text');
+    if (state === 'connecting') {
+      btn.className = 'main-btn btn-loading';
+          icon.textContent = '\u23F3';
+          text.textContent = 'Connecting...';
+      dot.className = 'status-dot dot-off';
+          statusText.textContent = 'Connecting to CYBERDOCTOR...';
+    } else if (state === 'connected') {
+        btn.className = 'main-btn btn-disconnect';
+          icon.textContent = '\u23F9\uFE0F';
+          text.textContent = 'End Consultation';
+          dot.className = 'status-dot dot-live';
+          statusText.textContent = 'Live \u2014 speak now';
+      const empty = document.getElementById('empty-state');
+      if (empty) empty.style.display = 'none';
+    } else {
+                btn.className = 'main-btn btn-connect';
+          icon.textContent = '\uD83C\uDF99\uFE0F';
+          text.textContent = 'Start Consultation';
+      dot.className = 'status-dot dot-off';
+          statusText.textContent = 'Ready';
+    }
+  }
+  
+  function addMessage(role, content) {
+      const container = document.getElementById('messages');
+      const div = document.createElement('div');
+    div.className = 'bubble ' + (role === 'user' ? 'user' : 'ai');
+    const label = document.createElement('div');
+      label.className = 'bubble-label';
+    label.textContent = role === 'user' ? 'You' : 'CYBERDOCTOR';
+                 const p = document.createElement('p');
+    p.textContent = content;
+    div.appendChild(label);
+    div.appendChild(p);
+    container.appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth' });
+  }
+  
+  async function startRecording() {
+          try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 } });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+      processor.onaudioprocess = (e) => {
+            if (!socket || socket.readyState !== WebSocket.OPEN) return;
+              const input = e.inputBuffer.getChannelData(0);
+        const pcm = new Int16Array(input.length);
+              for (let i = 0; i < input.length; i++) {
+            pcm[i] = Math.max(-32768, Math.min(32767, input[i] * 32767));
+    }
+              socket.send(JSON.stringify({ type: 'audio_input', data: btoa(String.fromCharCode(...new Uint8Array(pcm.buffer))) }));
     };
-                const msgsDiv = document.getElementById('msgs');
-  const anchor = document.createElement('div');
-  msgsDiv.appendChild(anchor);
-                      createRoot(anchor).render(h(Shell));
-    </script>
-  </body>body>
-</html>html></p></h2></h1>
+      recorder = processor;
+          } catch(e) {
+            showError('Microphone access denied. Please allow microphone and try again.');
+            disconnect();
+          }
+    }
+  
+  async function playAudio(base64Data) {
+      try {
+                const binary = atob(base64Data);
+            const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                      const buffer = await ctx.decodeAudioData(bytes.buffer);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start();
+      source.onended = () => { isPlaying = false; playNextInQueue(); };
+            isPlaying = true;
+    } catch(e) { isPlaying = false; playNextInQueue(); }
+  }
+  
+  function playNextInQueue() {
+    if (audioQueue.length > 0 && !isPlaying) {
+          playAudio(audioQueue.shift());
+    }
+  }
+  
+  async function connect() {
+      setUIState('connecting');
+      try {
+            const wsUrl = `wss://api.hume.ai/v0/evi/chat?api_key=${API_KEY}&config_id=${CONFIG_ID}`;
+      socket = new WebSocket(wsUrl);
+      socket.onopen = async () => {
+              isConnected = true;
+        setUIState('connected');
+        await startRecording();
+      };
+            socket.onmessage = (event) => {
+                    try {
+                              const msg = JSON.parse(event.data);
+          if (msg.type === 'audio_output' && msg.data) {
+                      audioQueue.push(msg.data);
+                      if (!isPlaying) playNextInQueue();
+                 } else if (msg.type === 'assistant_message' && msg.message?.content) {
+            addMessage('assistant', msg.message.content);
+    } else if (msg.type === 'user_message' && msg.message?.content) {
+                      addMessage('user', msg.message.content);
+    }
+                    } catch(e) {}
+            };
+            socket.onerror = () => { showError('Connection error. Please try again.'); disconnect(); };
+        socket.onclose = () => { if (isConnected) { isConnected = false; setUIState('disconnected'); } };
+    } catch(e) {
+        showError('Failed to connect: ' + e.message);
+      setUIState('disconnected');
+    }
+    }
+  
+  function disconnect() {
+    isConnected = false;
+    if (recorder) { recorder.disconnect(); recorder = null; }
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+        if (audioContext) { audioContext.close(); audioContext = null; }
+    if (socket) { socket.close(); socket = null; }
+                          audioQueue = [];
+      isPlaying = false;
+    setUIState('disconnected');
+  }
+  
+  window.handleToggle = function() {
+    if (isConnected) disconnect();
+      else connect();
+    };
+  </script>
+  
   </body>
-    </style></title>
-  </head>
+</html>html></p></h2></h1></body>
+  </style></title>
+  </head>Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace
