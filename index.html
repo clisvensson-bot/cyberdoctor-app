@@ -66,7 +66,7 @@ function connect(){
         if(m.type==="audio_output"&&m.data){
           orb.className="orb sp";ic.textContent="\uD83D\uDC04";
           ss("Speaking...","sp","");
-          playPCM(m.data);
+          playWAV(m.data);
         }
         if(m.type==="user_message"){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening...","on","");}
         if(m.type==="assistant_end_utterance"){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");}
@@ -81,12 +81,12 @@ function connect(){
 function startMic(){
   navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}}).then(function(s){
     stream=s;
-    // Recording AudioContext at 16kHz for sending to Hume
+    // Recording at 16kHz for Hume input
     try{actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
     catch(ex){actx=new(window.AudioContext||window.webkitAudioContext)();}
     try{actx.resume();}catch(ex){}
 
-    // Playback AudioContext - separate, at system default rate
+    // Separate playback context at system default rate
     if(!playCtx||playCtx.state==="closed"){
       playCtx=new(window.AudioContext||window.webkitAudioContext)();
       try{playCtx.resume();}catch(ex){}
@@ -121,9 +121,9 @@ function startMic(){
   });
 }
 
-// Play raw PCM16 audio from Hume EVI 3
-// Hume EVI 3 sends 24kHz mono PCM16, base64 encoded
-function playPCM(b64){
+// Hume EVI sends base64-encoded WAV files (48kHz)
+// Use decodeAudioData to let the browser parse the WAV header correctly
+function playWAV(b64){
   try{
     if(!playCtx||playCtx.state==="closed"){
       playCtx=new(window.AudioContext||window.webkitAudioContext)();
@@ -131,33 +131,56 @@ function playPCM(b64){
     }
     try{playCtx.resume();}catch(ex){}
 
-    // Decode base64 to bytes
+    // Decode base64 to ArrayBuffer
+    var raw=atob(b64);
+    var buf=new ArrayBuffer(raw.length);
+    var view=new Uint8Array(buf);
+    for(var i=0;i<raw.length;i++)view[i]=raw.charCodeAt(i);
+
+    // Let the browser decode the WAV file natively (reads its own header for sample rate)
+    playCtx.decodeAudioData(buf,function(audioBuf){
+      var node=playCtx.createBufferSource();
+      node.buffer=audioBuf;
+      node.connect(playCtx.destination);
+
+      var now=playCtx.currentTime;
+      var start=Math.max(now,nextTime);
+      node.start(start);
+      nextTime=start+audioBuf.duration;
+
+      node.onended=function(){
+        setTimeout(function(){
+          if(nextTime<=playCtx.currentTime+0.05){
+            orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
+            ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");
+          }
+        },100);
+      };
+    },function(err){
+      // decodeAudioData failed - data might be raw Pcm after all, fallback to 48kHz PCM
+      playPCMFallback(b64);
+    });
+  }catch(e){playPCMFallback(b64);}
+}
+
+// Fallback: treat as raw PCM16 at 48kHz if WAV decode fails
+function playPCMFallback(b64){
+  try{
     var raw=atob(b64);
     var bytes=new Uint8Array(raw.length);
     for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
-
-    // Interpret as 16-bit signed PCM (little-endian)
     var int16=new Int16Array(bytes.buffer);
-
-    // Convert to float32 for Web Audio API
     var float32=new Float32Array(int16.length);
-    for(var i=0;i<int16.length;i++){
-      float32[i]=int16[i]/(int16[i]<0?32768:32767);
-    }
-
-    // *** KEY FIX: Hume EVI 3 sends 24kHz PCM - must match here ***
-    var sampleRate=24000;
-    var buf=playCtx.createBuffer(1,float32.length,sampleRate);
-    buf.copyToChannel(float32,0);
-
+    for(var i=0;i<int16.length;i++)float32[i]=int16[i]/(int16[i]<0?32768:32767);
+    var abuf=playCtx.createBuffer(1,float32.length,48000);
+    abuf.copyToChannel(float32,0);
     var node=playCtx.createBufferSource();
-    node.buffer=buf;
+    node.buffer=abuf;
     node.connect(playCtx.destination);
-
     var now=playCtx.currentTime;
     var start=Math.max(now,nextTime);
     node.start(start);
-    nextTime=start+buf.duration;
+    nextTime=start+abuf.duration;
     node.onended=function(){
       setTimeout(function(){
         if(nextTime<=playCtx.currentTime+0.05){
