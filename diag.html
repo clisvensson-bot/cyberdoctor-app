@@ -1,0 +1,56 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CYBERDOCTOR DEBUG</title>
+<style>body{background:#000;color:#0f0;font-family:monospace;padding:10px;font-size:14px}
+button{background:#004400;color:#0f0;border:1px solid #0f0;padding:12px 24px;font-size:16px;border-radius:6px;margin:10px 0;display:block;width:100%}
+#log{margin-top:10px;white-space:pre-wrap;word-break:break-all;border:1px solid #030;padding:8px;min-height:200px}</style>
+</head><body>
+<div id="log">CYBERDOCTOR DIAGNOSTIC v1
+Tap START to test Hume connection
+</div>
+<button onclick="go()">START TEST</button>
+<button onclick="document.getElementById('log').textContent='cleared\n'">CLEAR</button>
+<script>
+var C="1a4efd76-4e79-41dc-9c34-46ca454ea302";
+var K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
+var log=document.getElementById('log');
+function L(m){log.textContent+='\n'+m;log.scrollTop=log.scrollHeight;}
+function go(){
+  L('1. Starting...');
+  try{
+    var ws=new WebSocket('wss://api.hume.ai/v0/evi/chat?config_id='+C+'&api_key='+K);
+    L('2. WebSocket created, state='+ws.readyState);
+    ws.onopen=function(){
+      L('3. CONNECTED! readyState='+ws.readyState);
+      L('4. Requesting mic...');
+      navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+        L('5. MIC GRANTED');
+        var ctx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+        L('6. AudioContext sampleRate='+ctx.sampleRate);
+        var src=ctx.createMediaStreamSource(s);
+        var proc=ctx.createScriptProcessor(4096,1,1);
+        var n=0;
+        proc.onaudioprocess=function(e){
+          if(ws.readyState!==1)return;
+          var d=e.inputBuffer.getChannelData(0);
+          var p=new Int16Array(d.length);
+          for(var i=0;i<d.length;i++)p[i]=Math.max(-32768,Math.min(32767,d[i]*32768));
+          var b=new Uint8Array(p.buffer),s2='';
+          for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
+          ws.send(JSON.stringify({type:'audio_input',data:btoa(s2)}));
+          n++;if(n===1)L('7. First packet sent');if(n===10)L('8. 10 packets sent OK');
+        };
+        src.connect(proc);proc.connect(ctx.destination);
+        L('6b. Streaming started');
+      }).catch(function(e){L('MIC ERROR: '+e.message);});
+    };
+    ws.onmessage=function(e){
+      try{var m=JSON.parse(e.data);L('MSG: '+m.type+(m.message?' '+m.message:''));}
+      catch(x){L('RAW: '+e.data.substring(0,100));}
+    };
+    ws.onerror=function(e){L('WS ERROR (check close code below)');};
+    ws.onclose=function(e){L('WS CLOSED code='+e.code+' reason="'+e.reason+'"');};
+  }catch(e){L('EXCEPTION: '+e.message);}
+}
+</script>
+</body></html>
