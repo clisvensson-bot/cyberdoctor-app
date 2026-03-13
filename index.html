@@ -42,7 +42,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div class="brand">Dialadoctor.global &middot; Hume EVI</div>
 <script>
 var C="fdd212af-9c46-4396-806e-dac64d005682",K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
-var sock,stream,actx,proc;
+var sock,stream,actx,proc,pingTimer;
 var on=false,playCtx=null,nextTime=0;
 var orb=document.getElementById("orb"),ic=document.getElementById("ic"),st=document.getElementById("st"),ht=document.getElementById("ht");
 
@@ -58,7 +58,19 @@ function connect(){
       on=true;
       orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
       ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");
+
+      // Send session settings: disable VAD so session stays open, we control audio_input manually
+      sock.send(JSON.stringify({
+        type:"session_settings",
+        audio:{
+          encoding:"linear16",
+          sample_rate:16000,
+          channels:1
+        }
+      }));
+
       startMic();
+      startPing();
     };
     sock.onmessage=function(e){
       try{
@@ -70,18 +82,39 @@ function connect(){
         }
         if(m.type==="user_message"){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening...","on","");}
         if(m.type==="assistant_end_utterance"){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");}
-        if(m.type==="error"){ss("Error - tap to retry","er","");stop();}
+        if(m.type==="error"){ss("Error: "+( m.message||"unknown")+" - tap to retry","er","");stop();}
+        if(m.type==="chat_metadata"){/* session confirmed alive */}
       }catch(x){}
     };
     sock.onerror=function(){ss("Connection error - tap to retry","er","");stop();};
-    sock.onclose=function(e){if(on)stop();};
+    sock.onclose=function(ev){
+      if(on){
+        var reason=ev.reason||"";
+        ss("Disconnected ("+ev.code+")"+(reason?" - "+reason:"")+" - tap to retry","er","");
+        stop();
+      }
+    };
   }catch(e){ss("Error: "+e.message,"er","Tap to retry");}
+}
+
+// Send a ping every 20s to keep the WebSocket alive
+function startPing(){
+  clearInterval(pingTimer);
+  pingTimer=setInterval(function(){
+    if(sock&&sock.readyState===1){
+      // Hume doesn't have explicit ping but sending empty audio_input keeps it alive
+      // Actually just use WebSocket ping via a session_settings refresh which is a no-op
+      try{
+        sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000,channels:1}}));
+      }catch(e){}
+    }
+  },20000);
 }
 
 function startMic(){
   navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}}).then(function(s){
     stream=s;
-    // Recording at 16kHz for Hume input
+    // Recording AudioContext at 16kHz for sending to Hume
     try{actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
     catch(ex){actx=new(window.AudioContext||window.webkitAudioContext)();}
     try{actx.resume();}catch(ex){}
@@ -98,9 +131,9 @@ function startMic(){
     var ratio=Math.round(actx.sampleRate/16000);
     if(ratio<1)ratio=1;
 
-    proc.onaudioprocess=function(e){
+    proc.onaudioprocess=function(ev){
       if(!sock||sock.readyState!==1)return;
-      var d=e.inputBuffer.getChannelData(0);
+      var d=ev.inputBuffer.getChannelData(0);
       var p;
       if(ratio===1){
         p=new Int16Array(d.length);
@@ -121,8 +154,8 @@ function startMic(){
   });
 }
 
-// Hume EVI sends base64-encoded WAV files (48kHz)
-// Use decodeAudioData to let the browser parse the WAV header correctly
+// Hume EVI sends base64-encoded WAV files
+// Use decodeAudioData - browser reads WAV header and plays at correct speed automatically
 function playWAV(b64){
   try{
     if(!playCtx||playCtx.state==="closed"){
@@ -131,23 +164,19 @@ function playWAV(b64){
     }
     try{playCtx.resume();}catch(ex){}
 
-    // Decode base64 to ArrayBuffer
     var raw=atob(b64);
     var buf=new ArrayBuffer(raw.length);
     var view=new Uint8Array(buf);
     for(var i=0;i<raw.length;i++)view[i]=raw.charCodeAt(i);
 
-    // Let the browser decode the WAV file natively (reads its own header for sample rate)
     playCtx.decodeAudioData(buf,function(audioBuf){
       var node=playCtx.createBufferSource();
       node.buffer=audioBuf;
       node.connect(playCtx.destination);
-
       var now=playCtx.currentTime;
       var start=Math.max(now,nextTime);
       node.start(start);
       nextTime=start+audioBuf.duration;
-
       node.onended=function(){
         setTimeout(function(){
           if(nextTime<=playCtx.currentTime+0.05){
@@ -157,13 +186,11 @@ function playWAV(b64){
         },100);
       };
     },function(err){
-      // decodeAudioData failed - data might be raw Pcm after all, fallback to 48kHz PCM
       playPCMFallback(b64);
     });
   }catch(e){playPCMFallback(b64);}
 }
 
-// Fallback: treat as raw PCM16 at 48kHz if WAV decode fails
 function playPCMFallback(b64){
   try{
     var raw=atob(b64);
@@ -194,6 +221,7 @@ function playPCMFallback(b64){
 
 function stop(){
   on=false;
+  clearInterval(pingTimer);
   orb.className="orb";ic.textContent="\uD83C\uDF3F";
   ss("Tap the orb to begin","","Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing");
   if(proc){try{proc.disconnect();}catch(e){}proc=null;}
