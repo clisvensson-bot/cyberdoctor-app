@@ -1,17 +1,18 @@
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CYBERDOCTOR DEBUG</title>
+<title>CYBERDOCTOR DEBUG v2</title>
 <style>body{background:#000;color:#0f0;font-family:monospace;padding:10px;font-size:14px}
 button{background:#004400;color:#0f0;border:1px solid #0f0;padding:12px 24px;font-size:16px;border-radius:6px;margin:10px 0;display:block;width:100%}
 #log{margin-top:10px;white-space:pre-wrap;word-break:break-all;border:1px solid #030;padding:8px;min-height:200px}</style>
 </head><body>
-<div id="log">CYBERDOCTOR DIAGNOSTIC v1
-Tap START to test Hume connection
+<div id="log">CYBERDOCTOR DIAGNOSTIC v2 (NEW CONFIG)
+Config: fdd212af-9c46-4396-806e-dac64d005682
+Tap START to test
 </div>
 <button onclick="go()">START TEST</button>
 <button onclick="document.getElementById('log').textContent='cleared\n'">CLEAR</button>
 <script>
-var C="1a4efd76-4e79-41dc-9c34-46ca454ea302";
+var C="fdd212af-9c46-4396-806e-dac64d005682";
 var K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
 var log=document.getElementById('log');
 function L(m){log.textContent+='\n'+m;log.scrollTop=log.scrollHeight;}
@@ -41,14 +42,15 @@ function go(){
           n++;if(n===1)L('7. First packet sent');if(n===10)L('8. 10 packets sent OK');
         };
         src.connect(proc);proc.connect(ctx.destination);
-        L('6b. Streaming started');
+        L('6b. Streaming started - speak now');
       }).catch(function(e){L('MIC ERROR: '+e.message);});
     };
     ws.onmessage=function(e){
-      try{var m=JSON.parse(e.data);L('MSG: '+m.type+(m.message?' '+m.message:''));}
-      catch(x){L('RAW: '+e.data.substring(0,100));}
+      try{var m=JSON.parse(e.data);L('MSG: '+m.type+(m.message?' '+m.message:'')+(m.code?' code='+m.code:'')+(m.slug?' slug='+m.slug:''));
+      if(m.type==='error')L('FULL ERROR: '+JSON.stringify(m));}
+      catch(x){L('RAW: '+e.data.substring(0,200));}
     };
-    ws.onerror=function(e){L('WS ERROR (check close code below)');};
+    ws.onerror=function(e){L('WS ERROR (see close code below)');};
     ws.onclose=function(e){L('WS CLOSED code='+e.code+' reason="'+e.reason+'"');};
   }catch(e){L('EXCEPTION: '+e.message);}
 }
