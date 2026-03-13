@@ -12,23 +12,22 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;-webkit-tap-highlight-color:transparent}
 .logo{font-size:2.2rem;font-weight:700;letter-spacing:.18em;color:#4fc3f7;margin-bottom:6px}
-.tag{font-size:.8rem;color:#455a64;margin-bottom:50px;letter-spacing:.06em;text-transform:uppercase}
-.wrap{position:relative;margin-bottom:36px}
+.tag{font-size:.8rem;color:#455a64;margin-bottom:40px;letter-spacing:.06em;text-transform:uppercase}
+.wrap{position:relative;margin-bottom:30px}
 .ring{position:absolute;border-radius:50%;border:1px solid rgba(79,195,247,.15);animation:rp 3s ease-in-out infinite}
-.r1{inset:-12px}
-.r2{inset:-24px;border-color:rgba(79,195,247,.07);animation-delay:.5s}
+.r1{inset:-12px}.r2{inset:-24px;border-color:rgba(79,195,247,.07);animation-delay:.5s}
 @keyframes rp{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
-.orb{width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#162540,#0a0f1a);border:2px solid #1e3a5f;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .35s;position:relative;box-shadow:0 0 25px rgba(79,195,247,.08),inset 0 0 25px rgba(0,0,0,.5);user-select:none;-webkit-user-select:none}
+.orb{width:140px;height:140px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#162540,#0a0f1a);border:2px solid #1e3a5f;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .35s;position:relative;box-shadow:0 0 25px rgba(79,195,247,.08),inset 0 0 25px rgba(0,0,0,.5);user-select:none;-webkit-user-select:none}
 .orb:active{transform:scale(.93)}
 .orb.on{border-color:#4fc3f7;box-shadow:0 0 50px rgba(79,195,247,.35);animation:op 1.8s ease-in-out infinite}
 .orb.sp{border-color:#81c784;box-shadow:0 0 50px rgba(129,199,132,.35);animation:op .9s ease-in-out infinite}
 @keyframes op{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-.icon{font-size:3rem}
-.status{font-size:1rem;color:#78909c;margin-bottom:10px;min-height:26px;font-weight:500}
-.status.on{color:#4fc3f7}
-.status.sp{color:#81c784}
-.hint{font-size:.75rem;color:#2e4057;min-height:20px}
-.brand{position:fixed;bottom:18px;font-size:.65rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
+.icon{font-size:2.8rem}
+.status{font-size:1rem;color:#78909c;margin-bottom:8px;min-height:26px;font-weight:500}
+.status.on{color:#4fc3f7}.status.sp{color:#81c784}.status.er{color:#ef9a9a}
+.hint{font-size:.75rem;color:#2e4057;min-height:18px;margin-bottom:16px}
+#dbg{font-size:.65rem;color:#37474f;background:rgba(0,0,0,.3);border-radius:8px;padding:8px 12px;max-width:320px;text-align:left;line-height:1.6;max-height:100px;overflow-y:auto;width:90%}
+.brand{margin-top:12px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
 </style>
 </head>
 <body>
@@ -41,52 +40,86 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 </div>
 <div class="status" id="st">Tap the orb to begin</div>
 <div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
+<div id="dbg">Ready — tap orb to start</div>
 <div class="brand">Dialadoctor.global &middot; Hume EVI</div>
 <script>
 var C="1a4efd76-4e79-41dc-9c34-46ca454ea302",K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
 var sock,stream,actx,playCtx,proc;
 var on=false,q=[],busy=false;
-var orb=document.getElementById("orb"),ic=document.getElementById("ic"),st=document.getElementById("st"),ht=document.getElementById("ht");
+var orb=document.getElementById("orb"),ic=document.getElementById("ic"),st=document.getElementById("st"),ht=document.getElementById("ht"),dbg=document.getElementById("dbg");
+function log(m){dbg.innerHTML+="\n"+m;dbg.scrollTop=dbg.scrollHeight;}
 function ss(m,c,h){st.textContent=m;st.className="status"+(c?" "+c:"");if(h!==undefined)ht.textContent=h;}
 function go(){on?stop():connect();}
 function connect(){
   ss("Connecting...","","Please wait...");
+  log("Connecting to Hume...");
   try{
     sock=new WebSocket("wss://api.hume.ai/v0/evi/chat?config_id="+C+"&api_key="+K);
     sock.onopen=function(){
       on=true;orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
       ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");
+      log("WS connected. Starting mic...");
       startMic();
     };
     sock.onmessage=function(e){
       try{
         var m=JSON.parse(e.data);
+        log("MSG: "+m.type);
         if(m.type==="audio_output"&&m.data){orb.className="orb sp";ic.textContent="\uD83D\uDCAC";ss("Speaking...","sp","");q.push(m.data);if(!busy)play();}
         if(m.type==="user_message"){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening...","on","");}
-      }catch(x){}
+        if(m.type==="error"){log("Hume error: "+JSON.stringify(m));ss("Hume error","er","");}
+      }catch(x){log("Parse err: "+x);}
     };
-    sock.onerror=function(){ss("Connection error - tap to retry","","");stop();};
-    sock.onclose=function(){if(on)stop();};
-  }catch(e){ss("Error: "+e.message,"","Tap to retry");}
+    sock.onerror=function(e){log("WS error");ss("Connection error — tap to retry","er","");stop();};
+    sock.onclose=function(e){log("WS closed: "+e.code);if(on)stop();};
+  }catch(e){log("Connect err: "+e.message);ss("Error: "+e.message,"er","Tap to retry");}
 }
 function startMic(){
-  navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+  log("Requesting mic...");
+  navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}}).then(function(s){
+    log("Mic granted");
     stream=s;
-    actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
-    actx.resume();
-    if(!playCtx){playCtx=new(window.AudioContext||window.webkitAudioContext)();playCtx.resume();}
+    var targetRate=16000;
+    try{
+      actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:targetRate});
+      log("AudioCtx at 16kHz");
+    }catch(ex){
+      log("16kHz fail, using default");
+      actx=new(window.AudioContext||window.webkitAudioContext)();
+    }
+    try{actx.resume();}catch(ex){}
+    var actualRate=actx.sampleRate;
+    var ratio=Math.round(actualRate/targetRate);
+    if(ratio<1)ratio=1;
+    log("Rate: "+actualRate+"Hz ratio:"+ratio);
+    if(!playCtx){
+      try{playCtx=new(window.AudioContext||window.webkitAudioContext)();playCtx.resume();log("PlayCtx ready");}catch(ex){log("PlayCtx err:"+ex);}
+    }
     var src=actx.createMediaStreamSource(s);
     proc=actx.createScriptProcessor(4096,1,1);
     proc.onaudioprocess=function(e){
       if(!sock||sock.readyState!==1)return;
-      var d=e.inputBuffer.getChannelData(0),p=new Int16Array(d.length);
-      for(var i=0;i<d.length;i++)p[i]=Math.max(-32768,Math.min(32767,d[i]*32768));
+      var d=e.inputBuffer.getChannelData(0);
+      var out,p;
+      if(ratio===1){
+        p=new Int16Array(d.length);
+        for(var i=0;i<d.length;i++)p[i]=Math.max(-32768,Math.min(32767,d[i]*32768));
+      }else{
+        out=[];
+        for(var i=0;i<d.length;i+=ratio)out.push(d[i]);
+        p=new Int16Array(out.length);
+        for(var i=0;i<out.length;i++)p[i]=Math.max(-32768,Math.min(32767,out[i]*32768));
+      }
       var b=new Uint8Array(p.buffer),s2="";
       for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
       sock.send(JSON.stringify({type:"audio_input",data:btoa(s2)}));
     };
     src.connect(proc);proc.connect(actx.destination);
-  }).catch(function(){ss("Microphone needed","","Allow microphone in browser settings");});
+    log("Audio streaming started");
+  }).catch(function(err){
+    log("Mic err: "+err.message);
+    ss("Microphone needed","er","Allow microphone in browser settings");
+  });
 }
 function play(){
   if(!q.length){busy=false;if(on){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");}return;}
@@ -95,9 +128,12 @@ function play(){
   try{
     var s=atob(b),buf=new ArrayBuffer(s.length),v=new Uint8Array(buf);
     for(var i=0;i<s.length;i++)v[i]=s.charCodeAt(i);
-    if(!playCtx)playCtx=new(window.AudioContext||window.webkitAudioContext)();
-    playCtx.decodeAudioData(buf,function(dec){var n=playCtx.createBufferSource();n.buffer=dec;n.connect(playCtx.destination);n.onended=play;n.start(0);},function(){play();});
-  }catch(e){play();}
+    if(!playCtx||playCtx.state==="closed"){playCtx=new(window.AudioContext||window.webkitAudioContext)();}
+    try{playCtx.resume();}catch(ex){}
+    playCtx.decodeAudioData(buf,function(dec){
+      var n=playCtx.createBufferSource();n.buffer=dec;n.connect(playCtx.destination);n.onended=play;n.start(0);
+    },function(err){log("Decode err");play();});
+  }catch(e){log("Play err:"+e);play();}
 }
 function stop(){
   on=false;busy=false;q=[];
@@ -107,7 +143,7 @@ function stop(){
   if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
   if(actx){try{actx.close();}catch(e){}actx=null;}
   if(sock){try{sock.close();}catch(e){}sock=null;}
-  if(playCtx){try{playCtx.close();}catch(e){}playCtx=null;}
+  log("Stopped");
 }
 </script>
 </body>
