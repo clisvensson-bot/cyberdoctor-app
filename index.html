@@ -2,244 +2,103 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CYBERDOCTOR</title>
   <meta name="theme-color" content="#0a0a1a">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0a0a1a; color: #e3f2fd; min-height: 100vh; display: flex; flex-direction: column; }
-    .header { background: linear-gradient(135deg, #0d2137, #0a0a1a); padding: 18px 20px; text-align: center; border-bottom: 1px solid #1e3a5f; }
-    .logo { font-size: 30px; margin-bottom: 4px; }
-    h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: 0.25em; color: #4fc3f7; margin: 2px 0; }
-    .tagline { font-size: 0.72rem; color: #546e7a; letter-spacing: 0.1em; text-transform: uppercase; }
-    .powered { font-size: 0.62rem; color: #37474f; margin-top: 3px; }
-    .messages { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; min-height: 200px; }
-    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; gap: 16px; flex: 1; }
-    .pulse-icon { width: 84px; height: 84px; border-radius: 50%; background: linear-gradient(135deg, #1565c0, #0288d1); display: flex; align-items: center; justify-content: center; font-size: 38px; animation: pulse 2.5s infinite; }
-    @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(79,195,247,0.4); } 50% { box-shadow: 0 0 0 22px rgba(79,195,247,0); } }
-    .empty-state h2 { color: #4fc3f7; font-size: 1.1rem; }
-    .empty-state p { color: #546e7a; font-size: 0.88rem; line-height: 1.6; max-width: 280px; }
-    .feature-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
-    .feature-tag { background: #0d2137; border: 1px solid #1e3a5f; border-radius: 20px; padding: 4px 12px; font-size: 0.68rem; color: #90caf9; }
-    .bubble { max-width: 86%; padding: 12px 16px; border-radius: 18px; font-size: 0.9rem; line-height: 1.55; }
-    .bubble.user { background: #1565c0; align-self: flex-end; border-bottom-right-radius: 4px; }
-    .bubble.ai { background: #0d2137; border: 1px solid #1e3a5f; align-self: flex-start; border-bottom-left-radius: 4px; }
-    .bubble-label { font-size: 0.63rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; color: #4fc3f7; }
-    .bubble.user .bubble-label { color: #81d4fa; }
-    .controls { padding: 18px 20px 28px; border-top: 1px solid #1e3a5f; }
-    .main-btn { width: 100%; padding: 17px; border: none; border-radius: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
-    .btn-connect { background: linear-gradient(135deg, #1565c0, #0288d1); color: white; }
-    .btn-disconnect { background: linear-gradient(135deg, #b71c1c, #c62828); color: white; }
-               .btn-loading { background: #1e3a5f; color: #90caf9; cursor: not-allowed; }
-    .status-bar { text-align: center; margin-top: 10px; font-size: 0.73rem; color: #546e7a; display: flex; align-items: center; justify-content: center; gap: 6px; }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-    .dot-live { background: #4caf50; animation: blink 1.2s infinite; }
-    .dot-off { background: #37474f; }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-                     .disclaimer { font-size: 0.62rem; color: #37474f; text-align: center; margin-top: 8px; padding: 0 10px; }
-    #error-box { background: #1a0a0a; border: 1px solid #b71c1c; border-radius: 10px; padding: 12px 16px; color: #ef9a9a; font-size: 0.82rem; margin-bottom: 10px; display: none; }
-    </style>
   </head>
-  <body>
-  
-  <div class="header">
-    <div class="logo">&#x1F52C;</div>div>
-    <h1>CYBERDOCTOR</h1>
-    <div class="tagline">Holistic &amp; Quantum Medicine AI Advisor</div>div>
-    <div class="powered">Powered by Dialadoctor.global &middot; Dr. Carl Svensson</div>div>
-  </div>div>
-  
-  <div class="messages" id="messages">
-    <div class="empty-state" id="empty-state">
-        <div class="pulse-icon">&#x1F9EC;</div>div>
-        <h2>Ready for your consultation</h2>
-        <p>Speak about your health concerns. CYBERDOCTOR responds with holistic and quantum medicine guidance only.</p>
-        <div class="feature-tags">
-              <span class="feature-tag">&#x1F33F; Natural Remedies</span>span>
-              <span class="feature-tag">&#x269B;&#xFE0F; Quantum Medicine</span>span>
-              <span class="feature-tag">&#x1F30A; Bioresonance</span>span>
-              <span class="feature-tag">&#x1F9D8; Holistic Healing</span>span>
-              <span class="feature-tag">&#x1F331; Herbal Medicine</span>span>
-        </div>div>
-    </div>div>
-  </div>div>
-  
-  <div class="controls">
-    <div id="error-box"></div>div>
-    <button class="main-btn btn-connect" id="main-btn" onclick="handleToggle()">
-        <span id="btn-icon">&#x1F3A4;</span>span>
-        <span id="btn-text">Start Consultation</span>span>
-    </button>button>
-    <div class="status-bar">
-        <span class="status-dot dot-off" id="status-dot"></span>span>
-        <span id="status-text">Ready</span>span>
-    </div>div>
-    <div class="disclaimer">For informational purposes only. Not a substitute for professional medical advice. In emergencies call 112 / 999 / 911.</div>div>
-  </div>div>
-  
-  <script type="module">
-  import { Hume, HumeClient } from 'https://esm.sh/hume';
-  
-  const API_KEY = 'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d';
-  const CONFIG_ID = '1a4efd76-4e79-41dc-9c34-46ca454ea302';
-  
-  let socket = null;
-  let audioContext = null;
-  let mediaStream = null;
-  let recorder = null;
-  let isConnected = false;
-  let audioQueue = [];
-  let isPlaying = false;
-  
-  function showError(msg) {
-      const box = document.getElementById('error-box');
-    box.textContent = msg;
-    box.style.display = 'block';
-      setTimeout(() => { box.style.display = 'none'; }, 5000);
+<body style="margin:0;background:#0a0a1a;color:#e3f2fd;font-family:sans-serif;display:flex;flex-direction:column;min-height:100vh;align-items:center;justify-content:center;">
+<h1 style="color:#4fc3f7;font-size:2rem;letter-spacing:0.2em;">CYBERDOCTOR</h1>h1>
+<p style="color:#546e7a;">Loading voice AI...</p>p>
+<script>
+  const CONFIG_ID = "1a4efd76-4e79-41dc-9c34-46ca454ea302";
+  const API_KEY = "PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
+  let socket, mediaStream, audioContext, recorder, isConnected = false;
+  let audioQueue = [], isPlaying = false;
+
+  function setStatus(msg) {
+      document.querySelector('p').textContent = msg;
   }
-  
-  function setUIState(state) {
-      const btn = document.getElementById('main-btn');
-      const icon = document.getElementById('btn-icon');
-      const text = document.getElementById('btn-text');
-    const dot = document.getElementById('status-dot');
-      const statusText = document.getElementById('status-text');
-    if (state === 'connecting') {
-      btn.className = 'main-btn btn-loading';
-          icon.textContent = '\u23F3';
-          text.textContent = 'Connecting...';
-      dot.className = 'status-dot dot-off';
-          statusText.textContent = 'Connecting to CYBERDOCTOR...';
-    } else if (state === 'connected') {
-        btn.className = 'main-btn btn-disconnect';
-          icon.textContent = '\u23F9\uFE0F';
-          text.textContent = 'End Consultation';
-          dot.className = 'status-dot dot-live';
-          statusText.textContent = 'Live \u2014 speak now';
-      const empty = document.getElementById('empty-state');
-      if (empty) empty.style.display = 'none';
-    } else {
-                btn.className = 'main-btn btn-connect';
-          icon.textContent = '\uD83C\uDF99\uFE0F';
-          text.textContent = 'Start Consultation';
-      dot.className = 'status-dot dot-off';
-          statusText.textContent = 'Ready';
-    }
-  }
-  
-  function addMessage(role, content) {
-      const container = document.getElementById('messages');
-      const div = document.createElement('div');
-    div.className = 'bubble ' + (role === 'user' ? 'user' : 'ai');
-    const label = document.createElement('div');
-      label.className = 'bubble-label';
-    label.textContent = role === 'user' ? 'You' : 'CYBERDOCTOR';
-                 const p = document.createElement('p');
-    p.textContent = content;
-    div.appendChild(label);
-    div.appendChild(p);
-    container.appendChild(div);
-      div.scrollIntoView({ behavior: 'smooth' });
-  }
-  
-  async function startRecording() {
-          try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 } });
-                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-      const source = audioContext.createMediaStreamSource(mediaStream);
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
-                source.connect(processor);
-                processor.connect(audioContext.destination);
-      processor.onaudioprocess = (e) => {
-            if (!socket || socket.readyState !== WebSocket.OPEN) return;
-              const input = e.inputBuffer.getChannelData(0);
-        const pcm = new Int16Array(input.length);
-              for (let i = 0; i < input.length; i++) {
-            pcm[i] = Math.max(-32768, Math.min(32767, input[i] * 32767));
-    }
-              socket.send(JSON.stringify({ type: 'audio_input', data: btoa(String.fromCharCode(...new Uint8Array(pcm.buffer))) }));
-    };
-      recorder = processor;
-          } catch(e) {
-            showError('Microphone access denied. Please allow microphone and try again.');
-            disconnect();
-          }
-    }
-  
-  async function playAudio(base64Data) {
-      try {
-                const binary = atob(base64Data);
-            const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                      const buffer = await ctx.decodeAudioData(bytes.buffer);
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(ctx.destination);
-      source.start();
-      source.onended = () => { isPlaying = false; playNextInQueue(); };
-            isPlaying = true;
-    } catch(e) { isPlaying = false; playNextInQueue(); }
-  }
-  
-  function playNextInQueue() {
-    if (audioQueue.length > 0 && !isPlaying) {
-          playAudio(audioQueue.shift());
-    }
-  }
-  
+
   async function connect() {
-      setUIState('connecting');
       try {
-            const wsUrl = `wss://api.hume.ai/v0/evi/chat?api_key=${API_KEY}&config_id=${CONFIG_ID}`;
-      socket = new WebSocket(wsUrl);
-      socket.onopen = async () => {
-              isConnected = true;
-        setUIState('connected');
-        await startRecording();
-      };
-            socket.onmessage = (event) => {
-                    try {
-                              const msg = JSON.parse(event.data);
-          if (msg.type === 'audio_output' && msg.data) {
-                      audioQueue.push(msg.data);
-                      if (!isPlaying) playNextInQueue();
-                 } else if (msg.type === 'assistant_message' && msg.message?.content) {
-            addMessage('assistant', msg.message.content);
-    } else if (msg.type === 'user_message' && msg.message?.content) {
-                      addMessage('user', msg.message.content);
-    }
-                    } catch(e) {}
+            const res = await fetch("https://api.hume.ai/v0/evi/chat?config_id=" + CONFIG_ID, {
+                    method: "GET",
+                    headers: { "X-Hume-Api-Key": API_KEY }
+            });
+            const data = await res.json();
+            const wsUrl = "wss://api.hume.ai/v0/evi/chat?config_id=" + CONFIG_ID + "&api_key=" + API_KEY;
+            socket = new WebSocket(wsUrl);
+            socket.onopen = async () => {
+                    isConnected = true;
+                    setStatus("Connected - speak now");
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    audioContext = new AudioContext({ sampleRate: 16000 });
+                    const source = audioContext.createMediaStreamSource(mediaStream);
+                    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                    processor.onaudioprocess = (e) => {
+                              if (socket && socket.readyState === 1) {
+                                          const buf = e.inputBuffer.getChannelData(0);
+                                          const pcm = new Int16Array(buf.length);
+                                          for (let i = 0; i < buf.length; i++) pcm[i] = Math.max(-32768, Math.min(32767, buf[i] * 32768));
+                                const b64 = btoa(String.fromCharCode(...new Uint8Array(pcm.buffer)));
+                                          socket.send(JSON.stringify({ type: "audio_input", data: b64 }));
+                              }
+                    };
+        source.connect(processor);
+                    processor.connect(audioContext.destination);
+                    recorder = processor;
             };
-            socket.onerror = () => { showError('Connection error. Please try again.'); disconnect(); };
-        socket.onclose = () => { if (isConnected) { isConnected = false; setUIState('disconnected'); } };
-    } catch(e) {
-        showError('Failed to connect: ' + e.message);
-      setUIState('disconnected');
-    }
-    }
-  
+            socket.onmessage = async (e) => {
+                    try {
+                              const msg = JSON.parse(e.data);
+                              if (msg.type === "audio_output" && msg.data) {
+                                          audioQueue.push(msg.data);
+                                          if (!isPlaying) playNext();
+                              }
+                    } catch(err) {}
+            };
+            socket.onerror = () => { setStatus("Connection error"); disconnect(); };
+            socket.onclose = () => { if (isConnected) { isConnected = false; setStatus("Tap to start"); } };
+      } catch(e) {
+            setStatus("Error: " + e.message);
+      }
+                                            }
+
+                                                                         async function playNext() {
+                                                                             if (!audioQueue.length) { isPlaying = false; return; }
+                                                                             isPlaying = true;
+                                                                             const b64 = audioQueue.shift();
+                                                                             const bytes = atob(b64);
+                                                                             const buf = new ArrayBuffer(bytes.length);
+                                                                             const view = new Uint8Array(buf);
+                                                                             for (let i = 0; i < bytes.length; i++) view[i] = bytes.charCodeAt(i);
+                                                                             const decoded = await (new AudioContext()).decodeAudioData(buf);
+                                                                             const ctx = new AudioContext();
+                                                                             const src = ctx.createBufferSource();
+                                                                             src.buffer = decoded;
+                                                                             src.connect(ctx.destination);
+                                                                             src.onended = playNext;
+                                                                             src.start();
+                                                                         }
+
   function disconnect() {
-    isConnected = false;
-    if (recorder) { recorder.disconnect(); recorder = null; }
-    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
-        if (audioContext) { audioContext.close(); audioContext = null; }
-    if (socket) { socket.close(); socket = null; }
-                          audioQueue = [];
-      isPlaying = false;
-    setUIState('disconnected');
+      isConnected = false;
+      if (recorder) { recorder.disconnect(); recorder = null; }
+      if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+      if (socket) { socket.close(); socket = null; }
+      setStatus("Tap to start");
   }
-  
-  window.handleToggle = function() {
-    if (isConnected) disconnect();
+
+  document.body.addEventListener("click", () => {
+      if (isConnected) disconnect();
       else connect();
-    };
-  </script>
-  
-  </body>
-</html>html></p></h2></h1></body>
-  </style></title>
-  </head>Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace Backspace
+  });
+
+  setStatus("Tap anywhere to start CYBERDOCTOR");
+</script>
+</body>body>
+</html>html>
+</script></title>
+  </head>
