@@ -40,10 +40,10 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 </div>
 <div class="status" id="st">Tap the orb to begin</div>
 <div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
-<div id="dbg">Ready — tap orb to start</div>
+<div id="dbg">Ready &#x2014; tap orb to start</div>
 <div class="brand">Dialadoctor.global &middot; Hume EVI</div>
 <script>
-var C="1a4efd76-4e79-41dc-9c34-46ca454ea302",K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
+var C="fdd212af-9c46-4396-806e-dac64d005682",K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
 var sock,stream,actx,playCtx,proc;
 var on=false,q=[],busy=false;
 var orb=document.getElementById("orb"),ic=document.getElementById("ic"),st=document.getElementById("st"),ht=document.getElementById("ht"),dbg=document.getElementById("dbg");
@@ -70,7 +70,7 @@ function connect(){
         if(m.type==="error"){log("Hume error: "+JSON.stringify(m));ss("Hume error","er","");}
       }catch(x){log("Parse err: "+x);}
     };
-    sock.onerror=function(e){log("WS error");ss("Connection error — tap to retry","er","");stop();};
+    sock.onerror=function(e){log("WS error");ss("Connection error \u2014 tap to retry","er","");stop();};
     sock.onclose=function(e){log("WS closed: "+e.code);if(on)stop();};
   }catch(e){log("Connect err: "+e.message);ss("Error: "+e.message,"er","Tap to retry");}
 }
