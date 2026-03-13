@@ -81,12 +81,12 @@ function connect(){
 function startMic(){
   navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}}).then(function(s){
     stream=s;
-    // Recording AudioContext at 16kHz
+    // Recording AudioContext at 16kHz for sending to Hume
     try{actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
     catch(ex){actx=new(window.AudioContext||window.webkitAudioContext)();}
     try{actx.resume();}catch(ex){}
 
-    // Playback AudioContext (separate, at system rate)
+    // Playback AudioContext - separate, at system default rate
     if(!playCtx||playCtx.state==="closed"){
       playCtx=new(window.AudioContext||window.webkitAudioContext)();
       try{playCtx.resume();}catch(ex){}
@@ -121,7 +121,8 @@ function startMic(){
   });
 }
 
-// Play raw PCM16 audio from Hume (base64 encoded, 16kHz mono)
+// Play raw PCM16 audio from Hume EVI 3
+// Hume EVI 3 sends 24kHz mono PCM16, base64 encoded
 function playPCM(b64){
   try{
     if(!playCtx||playCtx.state==="closed"){
@@ -144,8 +145,8 @@ function playPCM(b64){
       float32[i]=int16[i]/(int16[i]<0?32768:32767);
     }
 
-    // Hume EVI sends 16kHz PCM
-    var sampleRate=16000;
+    // *** KEY FIX: Hume EVI 3 sends 24kHz PCM - must match here ***
+    var sampleRate=24000;
     var buf=playCtx.createBuffer(1,float32.length,sampleRate);
     buf.copyToChannel(float32,0);
 
