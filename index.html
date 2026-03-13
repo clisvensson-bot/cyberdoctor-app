@@ -72,8 +72,9 @@ function connect(){
 function startMic(){
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
     stream=s;
-    actx=new(window.AudioContext||window.webkitAudioContext)();
+    actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
     actx.resume();
+    if(!playCtx){playCtx=new(window.AudioContext||window.webkitAudioContext)();playCtx.resume();}
     var src=actx.createMediaStreamSource(s);
     proc=actx.createScriptProcessor(4096,1,1);
     proc.onaudioprocess=function(e){
