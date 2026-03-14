@@ -41,188 +41,174 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
 <div class="brand">Dialadoctor.global &middot; Hume EVI</div>
 <script>
-var C="fdd212af-9c46-4396-806e-dac64d005682",K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
-var sock,stream,actx,proc,pingT;
+var C="fdd212af-9c46-4396-806e-dac64d005682";
+var K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
+
+var sock=null, stream=null, mCtx=null, proc=null, pingT=null;
 var on=false;
-var orb=document.getElementById("orb"),ic=document.getElementById("ic"),st=document.getElementById("st"),ht=document.getElementById("ht");
+var orb=document.getElementById("orb");
+var ic=document.getElementById("ic");
+var st=document.getElementById("st");
+var ht=document.getElementById("ht");
 
-// Single playback AudioContext — created once on tap, kept alive by silent oscillator
-var AC=null,silOsc=null,nextT=0;
-var pendingQueue=[],decoding=false;
+// ONE AudioContext for playback — created fresh each session
+var pCtx=null;
+// Scheduling: chain buffers end-to-end
+var nextPlay=0;
 
-function getAC(){
-  if(!AC||AC.state==="closed"){
-    AC=new(window.AudioContext||window.webkitAudioContext)();
-    nextT=0;
-    // Silent oscillator keeps AudioContext running — proven technique
-    try{
-      var osc=AC.createOscillator(),g=AC.createGain();
-      g.gain.value=0.00001;
-      osc.connect(g);g.connect(AC.destination);osc.start();
-      silOsc=osc;
-    }catch(e){}
-  }
-  // Only resume if actually suspended — never interrupt a running context
-  if(AC.state==="suspended")AC.resume();
-  return AC;
+function ss(m,c,h){
+  st.textContent=m;
+  st.className="status"+(c?" "+c:"");
+  if(h!==undefined)ht.textContent=h;
 }
 
-function enqueueChunk(b64){
-  pendingQueue.push(b64);
-  drainQueue();
-}
-
-function drainQueue(){
-  if(decoding||pendingQueue.length===0)return;
-  var b64=pendingQueue.shift();
-  decoding=true;
-  var ac=getAC();
-  var bin=atob(b64);
-  var buf=new ArrayBuffer(bin.length);
-  var u8=new Uint8Array(buf);
-  for(var i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
-  ac.decodeAudioData(buf,
-    function(decoded){
-      scheduleBuffer(decoded);
-      decoding=false;
-      drainQueue();
-    },
-    function(){ decodePCM(b64); }
-  );
-}
-
-function decodePCM(b64){
-  try{
-    var ac=getAC();
-    var bin=atob(b64);
-    var by=new Uint8Array(bin.length);
-    for(var i=0;i<bin.length;i++)by[i]=bin.charCodeAt(i);
-    var s16=new Int16Array(by.buffer);
-    var f32=new Float32Array(s16.length);
-    for(var i=0;i<s16.length;i++)f32[i]=s16[i]/32768.0;
-    var ab=ac.createBuffer(1,f32.length,24000);
-    ab.copyToChannel(f32,0);
-    scheduleBuffer(ab);
-  }catch(e){}
-  decoding=false;
-  drainQueue();
-}
-
-function scheduleBuffer(decoded){
-  var ac=getAC();
-  var now=ac.currentTime;
-  // Reset nextT if too far behind or ahead
-  if(nextT<now-0.5||nextT>now+5.0)nextT=now;
-  var when=Math.max(now,nextT);
-  var src=ac.createBufferSource();
-  src.buffer=decoded;
-  src.connect(ac.destination);
-  src.start(when);
-  nextT=when+decoded.duration;
-  src.onended=function(){
-    setTimeout(function(){
-      if(on&&AC&&nextT<=AC.currentTime+0.3){
-        orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
-        ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");
-      }
-    },200);
-  };
-}
-
-function ss(m,c,h){st.textContent=m;st.className="status"+(c?" "+c:"");if(h!==undefined)ht.textContent=h;}
-function go(){on?stop():start();}
+function go(){ on ? stop() : start(); }
 
 function start(){
   ss("Connecting...","","Please wait...");
-  pendingQueue=[];decoding=false;nextT=0;
-  getAC();
+  nextPlay=0;
+
+  // Create fresh playback context
+  pCtx=new(window.AudioContext||window.webkitAudioContext)();
+
   try{
     sock=new WebSocket("wss://api.hume.ai/v0/evi/chat?config_id="+C+"&api_key="+K);
+    sock.binaryType="arraybuffer";
+
     sock.onopen=function(){
       on=true;
-      orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
-      ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");
-      sock.send(JSON.stringify({type:"session_settings",audio:{modality:"utterance",encoding:"linear16",sample_rate:16000,channels:1}}));
+      orb.className="orb on"; ic.textContent="\uD83C\uDF99\uFE0F";
+      ss("Listening — speak freely","on","Ask about herbs, remedies, quantum healing");
+      sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000,channels:1}}));
       startMic();
-      // Keepalive: only resume if suspended, every 3s
       pingT=setInterval(function(){
-        if(sock&&sock.readyState===1){
-          try{sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000,channels:1}}));}catch(e){}
+        if(sock && sock.readyState===1){
+          try{ sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000}})); }catch(e){}
         }
-        if(AC&&AC.state==="suspended")AC.resume();
-        if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
-      },3000);
+      },8000);
     };
+
     sock.onmessage=function(e){
       try{
         var m=JSON.parse(e.data);
-        if(m.type==="audio_output"&&m.data){
-          orb.className="orb sp";ic.textContent="\uD83D\uDC04";
+        if(m.type==="audio_output" && m.data){
+          orb.className="orb sp"; ic.textContent="\uD83D\uDC04";
           ss("Speaking...","sp","");
-          enqueueChunk(m.data);
+          playChunk(m.data);
         }
         if(m.type==="user_message"){
-          pendingQueue=[];decoding=false;
-          orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
+          orb.className="orb on"; ic.textContent="\uD83C\uDF99\uFE0F";
           ss("Listening...","on","");
+          nextPlay=0; // reset schedule on new turn
         }
-        if(m.type==="error"){ss("Error: "+(m.message||"unknown")+" - tap to retry","er","");stop();}
+        if(m.type==="error"){
+          ss("Error: "+(m.message||"unknown")+" — tap to retry","er","");
+          stop();
+        }
       }catch(x){}
     };
-    sock.onerror=function(){ss("Connection error - tap to retry","er","");stop();};
-    sock.onclose=function(ev){if(on){ss("Session ended ("+ev.code+") - tap to start new","er","");stop();}};
-  }catch(e){ss("Error: "+e.message,"er","Tap to retry");}
+
+    sock.onerror=function(){ ss("Connection error — tap to retry","er",""); stop(); };
+    sock.onclose=function(ev){
+      if(on){ ss("Session ended ("+ev.code+") — tap to restart","er",""); stop(); }
+    };
+  }catch(e){ ss("Error: "+e.message,"er","Tap to retry"); }
+}
+
+function playChunk(b64){
+  if(!pCtx) return;
+  // Ensure context is running
+  if(pCtx.state==="suspended") pCtx.resume();
+
+  var bin=atob(b64);
+  var buf=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+
+  // Try decodeAudioData first (handles WAV with headers)
+  var ab=buf.buffer.slice(0);
+  pCtx.decodeAudioData(ab,
+    function(decoded){
+      schedulePlay(decoded);
+    },
+    function(){
+      // Fallback: treat as raw PCM16 at 24kHz
+      var s16=new Int16Array(buf.buffer);
+      var f32=new Float32Array(s16.length);
+      for(var i=0;i<s16.length;i++) f32[i]=s16[i]/32768.0;
+      var ab2=pCtx.createBuffer(1,f32.length,24000);
+      ab2.copyToChannel(f32,0);
+      schedulePlay(ab2);
+    }
+  );
+}
+
+function schedulePlay(decoded){
+  if(!pCtx) return;
+  var now=pCtx.currentTime;
+  // If nextPlay is in the past or more than 5s ahead, reset
+  if(nextPlay < now || nextPlay > now+5) nextPlay=now;
+  var src=pCtx.createBufferSource();
+  src.buffer=decoded;
+  src.connect(pCtx.destination);
+  src.start(nextPlay);
+  nextPlay+=decoded.duration;
+  src.onended=function(){
+    // When all buffered audio finished, go back to listening UI
+    if(on && pCtx && nextPlay <= pCtx.currentTime+0.1){
+      orb.className="orb on"; ic.textContent="\uD83C\uDF99\uFE0F";
+      ss("Listening — speak freely","on","Ask about herbs, remedies, quantum healing");
+      nextPlay=0;
+    }
+  };
 }
 
 function startMic(){
   navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}})
   .then(function(s){
     stream=s;
-    try{actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
-    catch(ex){actx=new(window.AudioContext|lwindow.webkitAudioContext)();}
-    try{actx.resume();}catch(ex){}
-    var src=actx.createMediaStreamSource(s);
-    proc=actx.createScriptProcessor(4096,1,1);
-    var ratio=Math.round(actx.sampleRate/16000);if(ratio<1)ratio=1;
+    try{ mCtx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000}); }
+    catch(ex){ mCtx=new(window.AudioContext||window.webkitAudioContext)(); }
+    try{ mCtx.resume(); }catch(ex){}
+
+    var src=mCtx.createMediaStreamSource(s);
+    proc=mCtx.createScriptProcessor(4096,1,1);
+    var ratio=Math.max(1,Math.round(mCtx.sampleRate/16000));
+
     proc.onaudioprocess=function(ev){
-      if(!sock||sock.readyState!==1)return;
-      if(actx.state==="suspended")try{actx.resume();}catch(ex){}
-      var d=ev.inputBuffer.getChannelData(0),p;
-      if(ratio===1){
-        p=new Int16Array(d.length);
-        for(var i=0;i<d.length;i++)p[i]=Math.max(-32768,Math.min(32767,d[i]*32767));
-      }else{
-        var out=[];
-        for(var i=0;i<d.length;i+=ratio)out.push(d[i]);
-        p=new Int16Array(out.length);
-        for(var i=0;i<out.length;i++)p[i]=Math.max(-32768,Math.min(32767,out[i]*32767));
-      }
-      var b=new Uint8Array(p.buffer),s2="";
-      for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
-      try{sock.send(JSON.stringify({type:"audio_input",data:btoa(s2)}));}catch(ex){}
+      if(!sock||sock.readyState!==1) return;
+      if(mCtx.state==="suspended") try{mCtx.resume();}catch(ex){}
+      var d=ev.inputBuffer.getChannelData(0);
+      var out=(ratio===1)?d:[];
+      if(ratio!==1){ for(var i=0;i<d.length;i+=ratio) out.push(d[i]); }
+      var p=new Int16Array(out.length||d.length);
+      var src2=ratio===1?d:out;
+      for(var i=0;i<p.length;i++) p[i]=Math.max(-32768,Math.min(32767,(src2[i]||0)*32767));
+      var b=new Uint8Array(p.buffer), s2="";
+      for(var j=0;j<b.byteLength;j++) s2+=String.fromCharCode(b[j]);
+      try{ sock.send(JSON.stringify({type:"audio_input",data:btoa(s2)})); }catch(ex){}
     };
-    src.connect(proc);proc.connect(actx.destination);
-  }).catch(function(err){ss("Microphone needed","er","Allow microphone in browser settings");});
+    src.connect(proc); proc.connect(mCtx.destination);
+  })
+  .catch(function(err){ ss("Microphone needed","er","Allow mic in browser settings"); });
 }
 
 function stop(){
   on=false;
-  clearInterval(pingT);
-  pendingQueue=[];decoding=false;nextT=0;
-  orb.className="orb";ic.textContent="\uD83C\uDF3F";
+  clearInterval(pingT); pingT=null;
+  nextPlay=0;
+  orb.className="orb"; ic.textContent="\uD83C\uDF3F";
   ss("Tap the orb to begin","","Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing");
-  if(silOsc){try{silOsc.stop();}catch(e){}silOsc=null;}
-  if(proc){try{proc.disconnect();}catch(e){}proc=null;}
-  if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
-  if(actx){try{actx.close();}catch(e){}actx=null;}
-  if(AC){try{AC.close();}catch(e){}AC=null;}
-  if(sock){try{sock.close();}catch(e){}sock=null;}
+  if(proc){ try{proc.disconnect();}catch(e){} proc=null; }
+  if(stream){ stream.getTracks().forEach(function(t){t.stop();}); stream=null; }
+  if(mCtx){ try{mCtx.close();}catch(e){} mCtx=null; }
+  if(pCtx){ try{pCtx.close();}catch(e){} pCtx=null; }
+  if(sock){ try{sock.close();}catch(e){} sock=null; }
 }
 
 document.addEventListener("visibilitychange",function(){
-  if(!document.hidden&&on){
-    if(AC&&AC.state==="suspended")try{AC.resume();}catch(e){}
-    if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
+  if(!document.hidden && on){
+    if(pCtx && pCtx.state==="suspended") try{pCtx.resume();}catch(e){}
+    if(mCtx && mCtx.state==="suspended") try{mCtx.resume();}catch(e){}
   }
 });
 </script>
