@@ -42,19 +42,19 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div class="brand">Dialadoctor.global &middot; Hume EVI</div>
 <script>
 var C="fdd212af-9c46-4396-806e-dac64d005682",K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
-var sock,stream,actx,proc,pingT,rafId;
+var sock,stream,actx,proc,pingT;
 var on=false;
 var orb=document.getElementById("orb"),ic=document.getElementById("ic"),st=document.getElementById("st"),ht=document.getElementById("ht");
 
-var AC=null,silOsc=null;
-var nextT=0;
-var pendingQueue=[];
-var decoding=false;
+// Single playback AudioContext — created once on tap, kept alive by silent oscillator
+var AC=null,silOsc=null,nextT=0;
+var pendingQueue=[],decoding=false;
 
 function getAC(){
   if(!AC||AC.state==="closed"){
     AC=new(window.AudioContext||window.webkitAudioContext)();
     nextT=0;
+    // Silent oscillator keeps AudioContext running — proven technique
     try{
       var osc=AC.createOscillator(),g=AC.createGain();
       g.gain.value=0.00001;
@@ -62,16 +62,9 @@ function getAC(){
       silOsc=osc;
     }catch(e){}
   }
+  // Only resume if actually suspended — never interrupt a running context
   if(AC.state==="suspended")AC.resume();
   return AC;
-}
-
-// RAF keepalive - prevents browser from suspending AudioContext
-function rafKeepalive(){
-  if(!on)return;
-  if(AC&&AC.state==="suspended")try{AC.resume();}catch(e){}
-  if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
-  rafId=requestAnimationFrame(rafKeepalive);
 }
 
 function enqueueChunk(b64){
@@ -118,8 +111,8 @@ function decodePCM(b64){
 function scheduleBuffer(decoded){
   var ac=getAC();
   var now=ac.currentTime;
-  // Tight drift correction: if nextT is more than 0.5s behind or more than 3s ahead, reset
-  if(nextT<now-0.5||nextT>now+3.0)nextT=now;
+  // Reset nextT if too far behind or ahead
+  if(nextT<now-0.5||nextT>now+5.0)nextT=now;
   var when=Math.max(now,nextT);
   var src=ac.createBufferSource();
   src.buffer=decoded;
@@ -143,9 +136,6 @@ function start(){
   ss("Connecting...","","Please wait...");
   pendingQueue=[];decoding=false;nextT=0;
   getAC();
-  // Start RAF keepalive immediately
-  if(rafId)cancelAnimationFrame(rafId);
-  rafKeepalive();
   try{
     sock=new WebSocket("wss://api.hume.ai/v0/evi/chat?config_id="+C+"&api_key="+K);
     sock.onopen=function(){
@@ -154,11 +144,12 @@ function start(){
       ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");
       sock.send(JSON.stringify({type:"session_settings",audio:{modality:"utterance",encoding:"linear16",sample_rate:16000,channels:1}}));
       startMic();
+      // Keepalive: only resume if suspended, every 3s
       pingT=setInterval(function(){
         if(sock&&sock.readyState===1){
-          try{sock.send(JSON.stringify({type:"session_settings",audio:{bencoding:"linear16",sample_rate:16000,channels:1}}));}catch(e){}
+          try{sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000,channels:1}}));}catch(e){}
         }
-        if(AC&&AC.state==="suspended")try{AC.resume();}catch(e){}
+        if(AC&&AC.state==="suspended")AC.resume();
         if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
       },3000);
     };
@@ -188,7 +179,7 @@ function startMic(){
   .then(function(s){
     stream=s;
     try{actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
-    catch(ex){actx=new(window.AudioContext||window.webkitAudioContext)();}
+    catch(ex){actx=new(window.AudioContext|lwindow.webkitAudioContext)();}
     try{actx.resume();}catch(ex){}
     var src=actx.createMediaStreamSource(s);
     proc=actx.createScriptProcessor(4096,1,1);
@@ -216,7 +207,6 @@ function startMic(){
 
 function stop(){
   on=false;
-  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
   clearInterval(pingT);
   pendingQueue=[];decoding=false;nextT=0;
   orb.className="orb";ic.textContent="\uD83C\uDF3F";
@@ -231,9 +221,8 @@ function stop(){
 
 document.addEventListener("visibilitychange",function(){
   if(!document.hidden&&on){
-    if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
     if(AC&&AC.state==="suspended")try{AC.resume();}catch(e){}
-    if(!rafId)rafKeepalive();
+    if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
   }
 });
 </script>
