@@ -43,10 +43,25 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <script>
 var C="fdd212af-9c46-4396-806e-dac64d005682",K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
 var sock,stream,actx,proc,pingT;
-var on=false,pCtx=null,nextT=0;
+var on=false,pCtx=null,nextT=0,silentNode=null;
 var orb=document.getElementById("orb"),ic=document.getElementById("ic"),st=document.getElementById("st"),ht=document.getElementById("ht");
+
 function ss(m,c,h){st.textContent=m;st.className="status"+(c?" "+c:"");if(h!==undefined)ht.textContent=h;}
 function go(){on?stop():start();}
+
+function ensurePlayCtx(){
+  if(!pCtx||pCtx.state==="closed"){pCtx=new(window.AudioContext||window.webkitAudioContext)();nextT=0;}
+  if(pCtx.state==="suspended")pCtx.resume();
+  if(!silentNode||silentNode.context!==pCtx){
+    try{
+      var osc=pCtx.createOscillator(),gain=pCtx.createGain();
+      gain.gain.value=0.00001;
+      osc.connect(gain);gain.connect(pCtx.destination);osc.start();
+      silentNode=osc;
+    }catch(e){}
+  }
+}
+
 function start(){
   ss("Connecting...","","Please wait...");
   try{
@@ -58,8 +73,9 @@ function start(){
       sock.send(JSON.stringify({type:"session_settings",audio:{modality:"utterance",encoding:"linear16",sample_rate:16000,channels:1}}));
       startMic();
       pingT=setInterval(function(){
-        if(sock&&sock.readyState===1)try{sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000,channels:1}}));}catch(e){}
-      },20000);
+        if(sock&&sock.readyState===1){try{sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000,channels:1}}));}catch(e){}}
+        if(pCtx&&pCtx.state==="suspended")pCtx.resume();
+      },5000);
     };
     sock.onmessage=function(e){
       try{
@@ -74,67 +90,106 @@ function start(){
     sock.onclose=function(ev){if(on){ss("Session ended ("+ev.code+") - tap to start new","er","");stop();}};
   }catch(e){ss("Error: "+e.message,"er","Tap to retry");}
 }
+
 function startMic(){
   navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}})
   .then(function(s){
     stream=s;
-    try{actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}catch(ex){actx=new(window.AudioContext||window.webkitAudioContext)();}
+    try{actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
+    catch(ex){actx=new(window.AudioContext||window.webkitAudioContext)();}
     try{actx.resume();}catch(ex){}
-    if(!pCtx||pCtx.state==="closed"){pCtx=new(window.AudioContext||window.webkitAudioContext)();try{pCtx.resume();}catch(ex){}nextT=0;}
+    ensurePlayCtx();
     var src=actx.createMediaStreamSource(s);
     proc=actx.createScriptProcessor(4096,1,1);
     var r=Math.round(actx.sampleRate/16000);if(r<1)r=1;
     proc.onaudioprocess=function(ev){
       if(!sock||sock.readyState!==1)return;
+      if(actx&&actx.state==="suspended")try{actx.resume();}catch(ex){}
       var d=ev.inputBuffer.getChannelData(0),p;
-      if(r===1){p=new Int16Array(d.length);for(var i=0;i<d.length;i++)p[i]=Math.max(-32768,Math.min(32767,d[i]*32767));}
-      else{var out=[];for(var i=0;i<d.length;i+=r)out.push(d[i]);p=new Int16Array(out.length);for(var i=0;i<out.length;i++)p[i]=Math.max(-32768,Math.min(32767,out[i]*32767));}
-      var b=new Uint8Array(p.buffer),s2="";for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
-      sock.send(JSON.stringify({type:"audio_input",data:btoa(s2)}));
+      if(r===1){
+        p=new Int16Array(d.length);
+        for(var i=0;i<d.length;i++)p[i]=Math.max(-32768,Math.min(32767,d[i]*32767));
+      }else{
+        var out=[];
+        for(var i=0;i<d.length;i+=r)out.push(d[i]);
+        p=new Int16Array(out.length);
+        for(var i=0;i<out.length;i++)p[i]=Math.max(-32768,Math.min(32767,out[i]*32767));
+      }
+      var b=new Uint8Array(p.buffer),s2="";
+      for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
+      try{sock.send(JSON.stringify({type:"audio_input",data:btoa(s2)}));}catch(ex){}
     };
     src.connect(proc);proc.connect(actx.destination);
   }).catch(function(err){ss("Microphone needed","er","Allow microphone in browser settings");});
 }
+
 function playWAV(b64){
-  try{
-    if(!pCtx||pCtx.state==="closed"){pCtx=new(window.AudioContext||window.webkitAudioContext)();nextT=0;}
-    try{pCtx.resume();}catch(ex){}
-    var raw=atob(b64),buf=new ArrayBuffer(raw.length),v=new Uint8Array(buf);
-    for(var i=0;i<raw.length;i++)v[i]=raw.charCodeAt(i);
-    pCtx.decodeAudioData(buf,function(ab){
-      var nd=pCtx.createBufferSource();
-      nd.buffer=ab;nd.connect(pCtx.destination);
-      var now=pCtx.currentTime,st=Math.max(now,nextT);
-      nd.start(st);nextT=st+ab.duration;
-      nd.onended=function(){setTimeout(function(){
-        if(nextT<=pCtx.currentTime+0.05){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");}
-      },100);};
-    },function(){fallback(b64);});
-  }catch(e){fallback(b64);}
+  ensurePlayCtx();
+  var raw=atob(b64),buf=new ArrayBuffer(raw.length),v=new Uint8Array(buf);
+  for(var i=0;i<raw.length;i++)v[i]=raw.charCodeAt(i);
+  var buf2=buf.slice(0);
+  pCtx.decodeAudioData(buf2,function(ab){
+    ensurePlayCtx();
+    var now=pCtx.currentTime;
+    // DRIFT FIX: if nextT is stale (too far past or future), reset to now
+    if(nextT<now-0.3||nextT>now+2.0)nextT=now;
+    var when=Math.max(now,nextT);
+    var nd=pCtx.createBufferSource();
+    nd.buffer=ab;nd.connect(pCtx.destination);
+    nd.start(when);
+    nextT=when+ab.duration;
+    nd.onended=function(){
+      setTimeout(function(){
+        if(nextT<=pCtx.currentTime+0.1){
+          orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
+          ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");
+        }
+      },150);
+    };
+  },function(){fallback(b64);});
 }
+
 function fallback(b64){
   try{
+    ensurePlayCtx();
     var raw=atob(b64),by=new Uint8Array(raw.length);
     for(var i=0;i<raw.length;i++)by[i]=raw.charCodeAt(i);
-    var s=new Int16Array(by.buffer),f32=new Float32Array(s.length);for(var i=0;i<s.length;i++)f32[i]=s[i]/(s[i]<0?32768:32767);
+    var s=new Int16Array(by.buffer),f32=new Float32Array(s.length);
+    for(var i=0;i<s.length;i++)f32[i]=s[i]/(s[i]<0?32768:32767);
     var ab=pCtx.createBuffer(1,f32.length,48000);ab.copyToChannel(f32,0);
     var nd=pCtx.createBufferSource();nd.buffer=ab;nd.connect(pCtx.destination);
-    var now=pCtx.currentTime,stt=Math.max(now,nextT);
+    var now=pCtx.currentTime;
+    if(nextT<now-0.3||nextT>now+2.0)nextT=now;
+    var stt=Math.max(now,nextT);
     nd.start(stt);nextT=stt+ab.duration;
     nd.onended=function(){setTimeout(function(){
-      if(nextT<=pCtx.currentTime+0.05){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");}
-    },100);};
+      if(nextT<=pCtx.currentTime+0.1){
+        orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
+        ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");
+      }
+    },150);};
   }catch(e){}
 }
+
 function stop(){
   on=false;clearInterval(pingT);
   orb.className="orb";ic.textContent="\uD83C\uDF3F";
   ss("Tap the orb to begin","","Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing");
+  if(silentNode){try{silentNode.stop();}catch(e){}silentNode=null;}
   if(proc){try{proc.disconnect();}catch(e){}proc=null;}
   if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
   if(actx){try{actx.close();}catch(e){}actx=null;}
+  if(pCtx){try{pCtx.close();}catch(e){}pCtx=null;}
   if(sock){try{sock.close();}catch(e){}sock=null;}
+  nextT=0;
 }
+
+document.addEventListener("visibilitychange",function(){
+  if(!document.hidden&&on){
+    if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
+    if(pCtx&&pCtx.state==="suspended")try{pCtx.resume();}catch(e){}
+  }
+});
 </script>
 </body>
 </html>
