@@ -42,14 +42,11 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div class="brand">Dialadoctor.global &middot; Hume EVI</div>
 <script>
 var C="fdd212af-9c46-4396-806e-dac64d005682",K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
-var sock,stream,actx,proc,pingT;
+var sock,stream,actx,proc,pingT,rafId;
 var on=false;
 var orb=document.getElementById("orb"),ic=document.getElementById("ic"),st=document.getElementById("st"),ht=document.getElementById("ht");
 
-// Single shared AudioContext for playback
 var AC=null,silOsc=null;
-
-// Sequential audio queue
 var nextT=0;
 var pendingQueue=[];
 var decoding=false;
@@ -67,6 +64,14 @@ function getAC(){
   }
   if(AC.state==="suspended")AC.resume();
   return AC;
+}
+
+// RAF keepalive - prevents browser from suspending AudioContext
+function rafKeepalive(){
+  if(!on)return;
+  if(AC&&AC.state==="suspended")try{AC.resume();}catch(e){}
+  if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
+  rafId=requestAnimationFrame(rafKeepalive);
 }
 
 function enqueueChunk(b64){
@@ -113,7 +118,8 @@ function decodePCM(b64){
 function scheduleBuffer(decoded){
   var ac=getAC();
   var now=ac.currentTime;
-  if(nextT<now-0.2)nextT=now;
+  // Tight drift correction: if nextT is more than 0.5s behind or more than 3s ahead, reset
+  if(nextT<now-0.5||nextT>now+3.0)nextT=now;
   var when=Math.max(now,nextT);
   var src=ac.createBufferSource();
   src.buffer=decoded;
@@ -122,7 +128,7 @@ function scheduleBuffer(decoded){
   nextT=when+decoded.duration;
   src.onended=function(){
     setTimeout(function(){
-      if(on&&AC&&nextT<=AC.currentTime+0.2){
+      if(on&&AC&&nextT<=AC.currentTime+0.3){
         orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
         ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");
       }
@@ -137,6 +143,9 @@ function start(){
   ss("Connecting...","","Please wait...");
   pendingQueue=[];decoding=false;nextT=0;
   getAC();
+  // Start RAF keepalive immediately
+  if(rafId)cancelAnimationFrame(rafId);
+  rafKeepalive();
   try{
     sock=new WebSocket("wss://api.hume.ai/v0/evi/chat?config_id="+C+"&api_key="+K);
     sock.onopen=function(){
@@ -147,10 +156,11 @@ function start(){
       startMic();
       pingT=setInterval(function(){
         if(sock&&sock.readyState===1){
-          try{sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000,channels:1}}));}catch(e){}
+          try{sock.send(JSON.stringify({type:"session_settings",audio:{bencoding:"linear16",sample_rate:16000,channels:1}}));}catch(e){}
         }
-        if(AC&&AC.state==="suspended")AC.resume();
-      },5000);
+        if(AC&&AC.state==="suspended")try{AC.resume();}catch(e){}
+        if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
+      },3000);
     };
     sock.onmessage=function(e){
       try{
@@ -205,7 +215,9 @@ function startMic(){
 }
 
 function stop(){
-  on=false;clearInterval(pingT);
+  on=false;
+  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+  clearInterval(pingT);
   pendingQueue=[];decoding=false;nextT=0;
   orb.className="orb";ic.textContent="\uD83C\uDF3F";
   ss("Tap the orb to begin","","Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing");
@@ -221,6 +233,7 @@ document.addEventListener("visibilitychange",function(){
   if(!document.hidden&&on){
     if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
     if(AC&&AC.state==="suspended")try{AC.resume();}catch(e){}
+    if(!rafId)rafKeepalive();
   }
 });
 </script>
