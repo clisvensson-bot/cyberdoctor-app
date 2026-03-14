@@ -9,132 +9,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CYBERDOCTOR">
 <style>
-  {margin:0;padding:0;box-sizing:border-box}
+  *{margin:0;padding:0;box-sizing:border-box}
 body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;-webkit-tap-highlight-color:transparent}
 .logo{font-size:2.2rem;font-weight:700;letter-spacing:.18em;color:#4fc3f7;margin-bottom:6px}
 .tag{font-size:.8rem;color:#455a64;margin-bottom:40px;letter-spacing:.06em;text-transform:uppercase}
 .wrap{position:relative;margin-bottom:30px}
 .ring{position:absolute;border-radius:50%;border:1px solid rgba(79,195,247,.15);animation:rp 3s ease-in-out infinite}
 .r1{inset:-12px}.r2{inset:-24px;border-color:rgba(79,195,247,.07);animation-delay:.5s}
-@keyframes rp{0%, 100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
+@keyframes rp{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
 .orb{width:140px;height:140px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#162540,#0a0f1a);border:2px solid #1e3a5f;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .35s;position:relative;box-shadow:0 0 25px rgba(79,195,247,.08),inset 0 0 25px rgba(0,0,0,.5);user-select:none;-webkit-user-select:none}
 .orb:active{transform:scale(.93)}
-.orb.on{-color:#4fc3f7;box-shadow:0 0 50px rgba(79,195,247,.35);animation:op 1.8s ease-in-out infinite}
+.orb.on{margin:0;color:#4fc3f7;box-shadow:0 0 50px rgba(79,195,247,.35);animation:op 1.8s ease-in-out infinite}
 .orb.sp{border-color:#81c784;box-shadow:0 0 50px rgba(129,199,132,.35);animation:op .9s ease-in-out infinite}
-@keyframes op{0%, 100%{transform:scale(1)}50%{transform:scale(1.06)}}
-.icon{font-size:2.8rem}
-.status{font-size:1rem;color:#78909c;margin-bottom:8px;min-height:26px;font-weight:500}
-.status.on{color:#4fc3f7}.status.sp{color:#81c784}.status.er{color:#ef9a9a}
-.hint{font-size:.75rem;color:#2e4057;min-height:18px;margin-bottom:16px}
-.brand{margin-top:12px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
-</style>
-</head>
-<body>
-<div class="logo">CYBERDOCTOR</div>
-<div class="tag">Holistic &amp; Quantum Medicine AI &middot; Dialadoctor.global</div>
-<div class="wrap">
-  <div class="ring r1"></div>
-  <div class="ring r2"></div>
-  <div class="orb" id="orb" onclick="go()"><span class="icon" id="ic">&#127807;</span></div>
-</div>
-<div class="status" id="st">Tap the orb to begin</div>
-<div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
-<div class="brand">Dialadoctor.global &middot; Hume EVI</div>
-<script>
-var C="fdd212af-9c46-4396-806e-dac64d005682",K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
-var sock,stream,actx,proc,pingT;
-var on=false,pCtx=null,nextT=0;
-var orb=document.getElementById("orb"),ic=document.getElementById("ic"),st=document.getElementById("st"),ht=document.getElementById("ht");
-function ss(m,c,h){st.textContent=m;st.className="status"+(c?" "+c:"");if(h!==undefined)ht.textContent=h;}
-function go(){on?stop():start();}
-function start(){
-  ss("Connecting...","","Please wait...");
-  try{
-    sock=new WebSocket("wss://api.hume.ai/v0/evi/chat?config_id="+C+"&api_key="+K);
-    sock.onopen=function(){
-      on=true;
-      orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
-      ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");
-      sock.send(JSON.stringify({type:"session_settings",audio:{modality:"utterance",encoding:"linear16",sample_rate:16000,channels:1}}));
-      startMic();
-      pingT=setInterval(function(){
-        if(sock&&sock.readyState===1)try{sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000,channels:1}}));}catch(e){}
-      },20000);
-    };
-    sock.onmessage=function(e){
-      try{
-        var m=JSON.parse(e.data);
-        if(m.type==="audio_output"&&m.data){orb.className="orb sp";ic.textContent="\uD83D\uDC04";ss("Speaking...","sp","");playWAV(m.data);}
-        if(m.type==="user_message"){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening...","on","");}
-        if(m.type==="assistant_end_utterance"){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");}
-        if(m.type==="error"){ss("Error: "+(m.message||"unknown")+" - tap to retry","er","");stop();}
-      }catch(x){}
-    };
-    sock.onerror=function(){ss("Connection error - tap to retry","er","");stop();};
-    sock.onclose=function(ev){if(on){ss("Session ended ("+ev.code+") - tap to start new","er","");stop();}};
-  }catch(e){ss("Error: "+e.message,"er","Tap to retry");}
-}
-function startMic(){
-  navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}})
-  .then(function(s){
-    stream=s;
-    try{actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}catch(ex){actx=new(window.AudioContext||window.webkitAudioContext)();}
-    try{actx.resume();}catch(ex){}
-    if(!pCtx||pCtx.state==="closed"){pCtx=new(window.AudioContext||window.webkitAudioContext)();try{pCtx.resume();}catch(ex){}nextT=0;}
-    var src=actx.createMediaStreamSource(s);
-    proc=actx.createScriptProcessor(4096,1,1);
-    var r=Math.round(actx.sampleRate/16000);if(r<1@R: r=1;
-    proc.onaudioprocess=function(ev){
-      if(!sock||sock.readyState!==1)return;
-      var d=ev.inputBuffer.getChannelData(0),p;
-      if(r===1){p=new Int16Array(d.length);for(var i=0;i<d.length;i++)p[i]=Math.max(-32768,Math.min(32767,d[i]*32767));}
-      else{var out=[];for(var i=0;i<d.length;i+=r)out.push(d[i]);p=new Int16Array(out.length);for(var i=0;i<out.length;i++)p[i]=Math.max(-32768,Math.min(32767,out[i]*32767));}
-      var b=new Uint8Array(p.buffer),s2="";for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
-      sock.send(JSON.stringify({type:"audio_input",data:btoa(s2)}));
-    };
-    src.connect(proc);proc.connect(actx.destination);
-  }).catch(function(err){ss("Microphone needed","er","Allow microphone in browser settings");});
-}
-function playWAV(b64){
-  try{
-    if(!pCtx||pCtx.state==="closed"){pCtx=new(window.AudioContext||window.webkitAudioContext)();nextT=0;}
-    try{pCtx.resume();}catch(ex){}
-    var raw=atob(b64),buf=new ArrayBuffer(raw.length),v=new Uint8Array(buf);
-    for(var i=0;i<raw.length;i++)v[i]=raw.charCodeAt(i);
-    pCtx.decodeAudioData(buf,function(ab){
-      var nd=pCtx.createBufferSource();
-      nd.buffer=ab;nd.connect(pCtx.destination);
-      var now=pCtx.currentTime,st=Math.max(now,nextT);
-      nd.start(st);nextT=st+ab.duration;
-      nd.onended=function(){setTimeout(function(){
-        if(nextT<=pCtx.currentTime+0.05){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");}
-      },100);};
-    },function(){fallback(b64);});
-  }catch(e){fallback(b64);}
-}
-function fallback(b64){
-  try{
-    var raw=atob(b64),by=new Uint8Array(raw.length);
-    for(var i=0;i<raw.length;i++)by[i]=raw.charCodeAt(i);
-    var s=new Int16Array(by.buffer),32=new Float32Array(s.length);for(var i=0;i<s.length;i++)f32[i]=s[i]/(s[i]<0?32768:32767);
-    var ab=pCtx.createBuffer(1,f32.length,48000);ab.copyToChannel(f32,0);
-    var nd=pCtx.createBufferSource();nd.buffer=ab;nd.connect(pCtx.destination);
-    var now=pCtx.currentTime,stt=Math.max(now,nextT);
-    nd.start(stt);nextT=stt+ab.duration;
-    nd.onended=function(){setTimeout(function(){
-      if(nextT<=pCtx.currentTime+0.05){orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";ss("Listening - speak freely","on","Ask about herbs, remedies, quantum healing");}
-    },100);};
-  }catch(e){}
-}
-function stop(){
-  on=false;clearInterval(pingT);
-  orb.className="orb";ic.textContent="\uD83C\uDF3F";
-  ss("Tap the orb to begin","","Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing");
-  if(proc){try{proc.disconnect();}catch(e){}proc=null;}
-  if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
-  if(actx){try{actx.close();}catch(e){}actx=null;}
-  if(sock){try{sock.close();}catch(e){}sock=null;}
-}
-</script>
-</body>
-</html>
+@keyframes op{0%,100%{
