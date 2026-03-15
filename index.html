@@ -27,10 +27,10 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 .status.on{color:#4fc3f7}.status.sp{color:#81c784}.status.er{color:#ef9a9a}
 .hint{font-size:.75rem;color:#2e4057;min-height:18px;margin-bottom:16px}
 .brand{margin-top:12px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
+#dbx{margin-top:16px;font-size:.65rem;color:#ef9a9a;word-break:break-all;max-width:340px;text-align:left}
 </style>
 </head>
 <body>
-<!-- Android loudspeaker fix: Audio routed through MediaStreamDestination -> HTML audio element (media session = loudspeaker) -->
 <audio id="spkr" playsinline autoplay style="display:none"></audio>
 <div class="logo">CYBERDOCTOR</div>
 <div class="tag">Holistic &amp; Quantum Medicine AI &middot; Dialadoctor.global</div>
@@ -42,6 +42,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div class="status" id="st">Tap the orb to begin</div>
 <div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
 <div class="brand">Dialadoctor.global &middot; Hume EVI</div>
+<div id="dbx"></div>
 <script>
 var C="fdd212af-9c46-4396-806e-dac64d005682";
 var K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
@@ -50,19 +51,20 @@ var pCtx=null,msDest=null,acResT=null;
 var on=false,nextT=0;
 var queue=[],decoding=false;
 
-var orb=document.getElementById("orb");
++var orb=document.getElementById("orb");
 var ic=document.getElementById("ic");
 var st=document.getElementById("st");
 var ht=document.getElementById("ht");
 var spkr=document.getElementById("spkr");
+var dbx=document.getElementById("dbx");
 
+function log(m){dbx.innerHTML+="<br>"+m;}
 function ss(m,c,h){st.textContent=m;st.className="status"+(c?" "+c:"");if(h!==undefined)ht.textContent=h;}
 function go(){on?stop():start();}
 
 function initPlayCtx(){
   if(!pCtx||pCtx.state==="closed"){
     pCtx=new(window.AudioContext||window.webkitAudioContext)();
-    // Create MediaStreamDestination for loudspeaker routing on Android
     try{
       msDest=pCtx.createMediaStreamDestination();
       spkr.srcObject=msDest.stream;
@@ -84,7 +86,7 @@ function enqueue(b64){
 }
 
 function drain(){
-  if(decoding||queue.length===0)return;
+  if(decoding||queue.length===0(return;
   var b64=queue.shift();
   decoding=true;
   var ctx=initPlayCtx();
@@ -126,8 +128,10 @@ function start(){
   queue=[];decoding=false;nextT=0;
   initPlayCtx();
   try{
+    log("WS opening...");
     sock=new WebSocket("wss://api.hume.ai/v0/evi/chat?config_id="+C+"&api_key="+K);
     sock.onopen=function(){
+      log("WS opened OK");
       on=true;
       orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
       ss("Listening \u2014 speak freely","on","Ask about herbs, remedies, quantum healing");
@@ -161,17 +165,33 @@ function start(){
             }
           },Math.max(0,(nextT-(pCtx?pCtx.currentTime:0))*1000+300));
         }
-        if(m.type==="error"){ss("Error: "+(m.message||"unknown")+" \u2014 tap to retry","er","");stop();}
-      }catch(x){}
+        if(m.type==="error"){log("HUME ERROR: "+JSON.stringify(m));ss("Error: "+(m.message||"unknown")+" \u2014 tap to retry","er","");stop();}
+      }catch(x){log("PARSE ERR:"+x);}
     };
-    sock.onerror=function(){ss("Connection error \u2014 tap to retry","er","");stop();};
-    sock.onclose=function(ev){if(on){ss("Session ended ("+ev.code+") \u2014 tap to restart","er","");stop();}};
-  }catch(e){ss("Error: "+e.message,"er","Tap to retry");}
+    sock.onerror=function(e){log("WS ERROR fired");ss("WS ERROR - tap to retry","er","Check Hume credits/API key");stop();};
+    sock.onclose=function(ev){
+      var msg="CLOSED code="+ev.code+" r = "+(ev.reason||"none");
+      log(msg);
+      ss(msg,"er","Tap orb to retry");
+      on=false;
+      clearInterval(acResT);acResT=null;
+      queue=[];decoding=false;nextT=0;
+      orb.className="orb";ic.textContent="\uD83C\uDF3F";
+      if(proc){try{proc.disconnect();}catch(e){}proc=null;}
+      if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
+      if(actx){try{actx.close();}catch(e){}actx=null;}
+      if(pCtx){try{pCtx.close();}catch(e){}pCtx=null;}
+      msDest=null;
+      if(spkr)spkr.srcObject=null;
+      if(sock){try{sock.close();}catch(e){}sock=null;}
+    };
+  }catch(e){log("EXCEPTION:"+e.message);ss("Error: "+e.message,"er","Tap to retry");}
 }
 
 function startMic(){
   navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}})
   .then(function(s){
+    log("Mic OK");
     stream=s;
     try{actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
     catch(ex){actx=new(window.AudioContext||window.webkitAudioContext)();}
@@ -193,7 +213,7 @@ function startMic(){
       try{sock.send(JSON.stringify({type:"audio_input",data:btoa(s2)}));}catch(ex){}
     };
     src.connect(proc);proc.connect(actx.destination);
-  }).catch(function(){ss("Microphone needed","er","Allow mic in browser settings");});
+  }).catch(function(er){log("MIC FAIL:"+er);ss("Microphone needed","er","Allow mic in browser settings");});
 }
 
 function stop(){
