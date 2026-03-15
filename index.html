@@ -30,6 +30,8 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 </style>
 </head>
 <body>
+<!-- Hidden audio element - forces Android Chrome to use loudspeaker/media audio route -->
+<audio id="spaudio" playsinline style="display:none"></audio>
 <div class="logo">CYBERDOCTOR</div>
 <div class="tag">Holistic &amp; Quantum Medicine AI &middot; Dialadoctor.global</div>
 <div class="wrap">
@@ -52,6 +54,7 @@ var orb=document.getElementById("orb");
 var ic=document.getElementById("ic");
 var st=document.getElementById("st");
 var ht=document.getElementById("ht");
+var spa=document.getElementById("spaudio");
 
 function ss(m,c,h){st.textContent=m;st.className="status"+(c?" "+c:"");if(h!==undefined)ht.textContent=h;}
 function go(){on?stop():start();}
@@ -63,6 +66,17 @@ function initPlayCtx(){
   }
   if(pCtx.state==="suspended")pCtx.resume();
   return pCtx;
+}
+
+// Force Android loudspeaker: play a silent audio element first
+// This switches the audio session from "voice call" mode to "media" mode
+function unlockLoudspeaker(){
+  try{
+    spa.src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+    spa.volume=0.001;
+    var p=spa.play();
+    if(p)p.catch(function(){});
+  }catch(e){}
 }
 
 function enqueue(b64){
@@ -111,6 +125,8 @@ function play(buf){
 function start(){
   ss("Connecting...","","Please wait...");
   queue=[];decoding=false;nextT=0;
+  // Unlock loudspeaker BEFORE creating AudioContext
+  unlockLoudspeaker();
   initPlayCtx();
   try{
     sock=new WebSocket("wss://api.hume.ai/v0/evi/chat?config_id="+C+"&api_key="+K);
