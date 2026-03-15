@@ -1,58 +1,118 @@
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CYBERDOCTOR DEBUG v2</title>
-<style>body{background:#000;color:#0f0;font-family:monospace;padding:10px;font-size:14px}
-button{background:#004400;color:#0f0;border:1px solid #0f0;padding:12px 24px;font-size:16px;border-radius:6px;margin:10px 0;display:block;width:100%}
-#log{margin-top:10px;white-space:pre-wrap;word-break:break-all;border:1px solid #030;padding:8px;min-height:200px}</style>
+<title>CYBERDOCTOR AUDIO DIAG v3</title>
+<style>
+body{background:#000;color:#0f0;font-family:monospace;padding:10px;font-size:12px}
+button{background:#004400;color:#0f0;border:1px solid #0f0;padding:10px 20px;font-size:14px;border-radius:4px;margin:4px;cursor:pointer}
+#log{margin-top:8px;white-space:pre-wrap;word-break:break-all;border:1px solid #030;padding:6px;min-height:300px;max-height:75vh;overflow-y:auto}
+</style>
 </head><body>
-<div id="log">CYBERDOCTOR DIAGNOSTIC v2 (NEW CONFIG)
+<button onclick="go()">START</button>
+<button onclick="document.getElementById('log').innerHTML=''">CLEAR</button>
+<div id="log">CYBERDOCTOR AUDIO DIAG v3
 Config: fdd212af-9c46-4396-806e-dac64d005682
-Tap START to test
+Tap START, then speak a sentence. Watch the chunk log.
 </div>
-<button onclick="go()">START TEST</button>
-<button onclick="document.getElementById('log').textContent='cleared\n'">CLEAR</button>
 <script>
 var C="fdd212af-9c46-4396-806e-dac64d005682";
 var K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
-var log=document.getElementById('log');
-function L(m){log.textContent+='\n'+m;log.scrollTop=log.scrollHeight;}
+var el=document.getElementById('log');
+var pCtx=null, nextT=0, chunkN=0, totalDur=0;
+function L(m,col){var s=document.createElement('span');s.style.color=col||'#0f0';s.textContent='\n'+m;el.appendChild(s);el.scrollTop=el.scrollHeight;}
+
 function go(){
-  L('1. Starting...');
-  try{
-    var ws=new WebSocket('wss://api.hume.ai/v0/evi/chat?config_id='+C+'&api_key='+K);
-    L('2. WebSocket created, state='+ws.readyState);
-    ws.onopen=function(){
-      L('3. CONNECTED! readyState='+ws.readyState);
-      L('4. Requesting mic...');
-      navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
-        L('5. MIC GRANTED');
-        var ctx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
-        L('6. AudioContext sampleRate='+ctx.sampleRate);
-        var src=ctx.createMediaStreamSource(s);
-        var proc=ctx.createScriptProcessor(4096,1,1);
-        var n=0;
-        proc.onaudioprocess=function(e){
-          if(ws.readyState!==1)return;
-          var d=e.inputBuffer.getChannelData(0);
-          var p=new Int16Array(d.length);
-          for(var i=0;i<d.length;i++)p[i]=Math.max(-32768,Math.min(32767,d[i]*32768));
-          var b=new Uint8Array(p.buffer),s2='';
-          for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
-          ws.send(JSON.stringify({type:'audio_input',data:btoa(s2)}));
-          n++;if(n===1)L('7. First packet sent');if(n===10)L('8. 10 packets sent OK');
-        };
-        src.connect(proc);proc.connect(ctx.destination);
-        L('6b. Streaming started - speak now');
-      }).catch(function(e){L('MIC ERROR: '+e.message);});
-    };
-    ws.onmessage=function(e){
-      try{var m=JSON.parse(e.data);L('MSG: '+m.type+(m.message?' '+m.message:'')+(m.code?' code='+m.code:'')+(m.slug?' slug='+m.slug:''));
-      if(m.type==='error')L('FULL ERROR: '+JSON.stringify(m));}
-      catch(x){L('RAW: '+e.data.substring(0,200));}
-    };
-    ws.onerror=function(e){L('WS ERROR (see close code below)');};
-    ws.onclose=function(e){L('WS CLOSED code='+e.code+' reason="'+e.reason+'"');};
-  }catch(e){L('EXCEPTION: '+e.message);}
+  L('--- NEW TEST ---','#4af');
+  chunkN=0; totalDur=0; nextT=0;
+  pCtx=new(window.AudioContext||window.webkitAudioContext)();
+  L('AudioContext state: '+pCtx.state+' sampleRate: '+pCtx.sampleRate,'#4af');
+
+  var ws=new WebSocket('wss://api.hume.ai/v0/evi/chat?config_id='+C+'&api_key='+K);
+  ws.onopen=function(){
+    L('WS OPEN','#0f0');
+    ws.send(JSON.stringify({type:'session_settings',audio:{encoding:'linear16',sample_rate:16000,channels:1}}));
+    navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}})
+    .then(function(s){
+      L('MIC OK','#0f0');
+      var mCtx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+      var src=mCtx.createMediaStreamSource(s);
+      var proc=mCtx.createScriptProcessor(4096,1,1);
+      proc.onaudioprocess=function(ev){
+        if(ws.readyState!==1)return;
+        var d=ev.inputBuffer.getChannelData(0);
+        var p=new Int16Array(d.length);
+        for(var i=0;i<d.length;i++)p[i]=Math.max(-32768,Math.min(32767,d[i]*32767));
+        var b=new Uint8Array(p.buffer),s2='';
+        for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
+        ws.send(JSON.stringify({type:'audio_input',data:btoa(s2)}));
+      };
+      src.connect(proc);proc.connect(mCtx.destination);
+    }).catch(function(e){L('MIC ERROR: '+e.message,'#f44');});
+  };
+
+  ws.onmessage=function(e){
+    try{
+      var m=JSON.parse(e.data);
+      if(m.type==='audio_output'&&m.data){
+        chunkN++;
+        var bin=atob(m.data);
+        var bytes=bin.length;
+        // Check WAV header
+        var isWav=(bin.charCodeAt(0)===82&&bin.charCodeAt(1)===73&&bin.charCodeAt(2)===70&&bin.charCodeAt(3)===70);
+        var wavSR=0;
+        if(isWav){
+          // bytes 24-27 = sample rate (little endian)
+          wavSR=bin.charCodeAt(24)|(bin.charCodeAt(25)<<8)|(bin.charCodeAt(26)<<16)|(bin.charCodeAt(27)<<24);
+        }
+        L('CHUNK #'+chunkN+' bytes='+bytes+(isWav?' WAV SR='+wavSR:' RAW'),'#fa0');
+        // Decode and play
+        var ab=new ArrayBuffer(bytes);
+        var u8=new Uint8Array(ab);
+        for(var i=0;i<bytes;i++)u8[i]=bin.charCodeAt(i);
+        pCtx.decodeAudioData(ab.slice(0),function(buf){
+          var dur=buf.duration;
+          totalDur+=dur;
+          L('  decoded OK dur='+dur.toFixed(3)+'s total='+totalDur.toFixed(3)+'s sampleRate='+buf.sampleRate,'#0f0');
+          var now=pCtx.currentTime;
+          if(nextT<now||nextT>now+10)nextT=now;
+          var src2=pCtx.createBufferSource();
+          src2.buffer=buf;
+          src2.connect(pCtx.destination);
+          src2.start(nextT);
+          L('  scheduled at t='+nextT.toFixed(3)+' pCtx.now='+now.toFixed(3),'#0f0');
+          nextT+=dur;
+        },function(err){
+          L('  DECODE FAILED: '+err,'#f44');
+          // Try raw PCM16 at 24kHz
+          var s16=new Int16Array(db);
+          var f32=new Float32Array(s16.length);
+          for(var i=0;i<s16.length;i++)f32[i]=s16[i]/32768;
+          try{
+            var b2=pCtx.createBuffer(1,f32.length,24000);
+            b2.copyToChannel(f32,0);
+            var dur2=b2.duration;
+            totalDur+=dur2;
+            L('  PCM16 fallback dur='+dur2.toFixed(3)+'s','#fa0');
+            var now2=pCtx.currentTime;
+            if(nextT<now2||nextT>now2+10)nextT=now2;
+            var s2=pCtx.createBufferSource();
+            s2.buffer=b2;s2.connect(pCtx.destination);s2.start(nextT);
+            nextT+=dur2;
+          }catch(ex){L('  PCM fallback also failed: '+ex,'#f44');}
+        });
+      } else if(m.type==='assistant_end'){
+        L('ASSISTANT_END - total audio sent: '+totalDur.toFixed(3)+'s, chunks: '+chunkN,'#4af');
+      } else if(m.type==='user_message'){
+        L('USER_MSG - resetting for next turn','#4af');
+        nextT=0;totalDur=0;chunkN=0;
+      } else if(m.type==='error'){
+        L('ERROR: '+JSON.stringify(m),'#f44');
+      } else {
+        L('MSG: '+m.type,'#888');
+      }
+    }catch(x){L('PARSE ERR: '+e.data.substring(0,100),'#f44');}
+  };
+  ws.onerror=function(){L('WS ERROR','#f44');};
+  ws.onclose=function(e){L('WS CLOSED code='+e.code+' reason="'+e.reason+'"','#f44');};
 }
 </script>
 </body></html>
