@@ -29,13 +29,8 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 .brand{margin-top:12px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
 </style>
 </head>
-<hbody>
-<!-- 
-  Android loudspeaker fix:
-  Audio chunks from Hume EVI are decoded via AudioContext but then routed
-  through a MediaStreamDestination -> HTML <audio> element.
-  The HTML audio element uses the "media" audio session = loudspeaker.
--->
+<body>
+<!-- Android loudspeaker fix: Audio routed through MediaStreamDestination -> HTML audio element (media session = loudspeaker) -->
 <audio id="spkr" playsinline autoplay style="display:none"></audio>
 <div class="logo">CYBERDOCTOR</div>
 <div class="tag">Holistic &amp; Quantum Medicine AI &middot; Dialadoctor.global</div>
@@ -47,7 +42,6 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div class="status" id="st">Tap the orb to begin</div>
 <div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
 <div class="brand">Dialadoctor.global &middot; Hume EVI</div>
- 
 <script>
 var C="fdd212af-9c46-4396-806e-dac64d005682";
 var K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
@@ -81,8 +75,6 @@ function initPlayCtx(){
 }
 
 function getDestination(){
-  // Route audio through MediaStreamDestination (loudspeaker) if available,
-  // otherwise fall back to pCtx.destination (may be earpiece on Android)
   return msDest||pCtx.destination;
 }
 
@@ -196,7 +188,7 @@ function startMic(){
       var p=new Int16Array(out.length||d.length);
       var src2=ratio===1?d:out;
       for(var i=0;i<p.length;i++)p[i]=Math.max(-32768,Math.min(32767,(src2[i]||0)*32767));
-      var b=new Uint8Array(p.buffer)+s2="";
+      var b=new Uint8Array(p.buffer),s2="";
       for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
       try{sock.send(JSON.stringify({type:"audio_input",data:btoa(s2)}));}catch(ex){}
     };
