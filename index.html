@@ -43,10 +43,9 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <script>
 var C="fdd212af-9c46-4396-806e-dac64d005682";
 var K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
-var sock=null,stream=null,actx=null,proc=null,pCtx=null,pingT=null;
+var sock=null,stream=null,actx=null,proc=null,pCtx=null,acResT=null;
 var on=false;
 var nextT=0;
-// Sequential decode queue — one chunk at a time
 var queue=[],decoding=false;
 
 var orb=document.getElementById("orb");
@@ -76,18 +75,15 @@ function drain(){
   var b64=queue.shift();
   decoding=true;
   var ctx=initPlayCtx();
-  // decode base64 to ArrayBuffer
   var bin=atob(b64);
   var ab=new ArrayBuffer(bin.length);
   var u8=new Uint8Array(ab);
   for(var i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
-  // Try WAV decode first
   ctx.decodeAudioData(ab.slice(0),function(buf){
     play(buf);
     decoding=false;
     drain();
   },function(){
-    // Fallback: raw PCM16 at 24kHz
     try{
       var s16=new Int16Array(ab);
       var f32=new Float32Array(s16.length);
@@ -121,14 +117,15 @@ function start(){
     sock.onopen=function(){
       on=true;
       orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
-      ss("Listening — speak freely","on","Ask about herbs, remedies, quantum healing");
+      ss("Listening \u2014 speak freely","on","Ask about herbs, remedies, quantum healing");
+      // Send session_settings ONCE only at connection start
       sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000,channels:1}}));
       startMic();
-      pingT=setInterval(function(){
-        if(sock&&sock.readyState===1)try{sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000}}));}catch(e){}
-        if(pCtx&&pCtx.state==="suspended")pCtx.resume();
+      // AudioContext keepalive only - NO session_settings resend
+      acResT=setInterval(function(){
+        if(pCtx&&pCtx.state==="suspended")try{pCtx.resume();}catch(e){}
         if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
-      },5000);
+      },8000);
     };
     sock.onmessage=function(e){
       try{
@@ -145,19 +142,18 @@ function start(){
           nextT=0;
         }
         if(m.type==="assistant_end"){
-          // All audio sent — wait for queue to finish then flip back to listening
           setTimeout(function(){
             if(on&&pCtx&&nextT<=pCtx.currentTime+0.2){
               orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
-              ss("Listening — speak freely","on","Ask about herbs, remedies, quantum healing");
+              ss("Listening \u2014 speak freely","on","Ask about herbs, remedies, quantum healing");
             }
           },Math.max(0,(nextT-(pCtx?pCtx.currentTime:0))*1000+300));
         }
-        if(m.type==="error"){ss("Error: "+(m.message||"unknown")+" — tap to retry","er","");stop();}
+        if(m.type==="error"){ss("Error: "+(m.message||"unknown")+" \u2014 tap to retry","er","");stop();}
       }catch(x){}
     };
-    sock.onerror=function(){ss("Connection error — tap to retry","er","");stop();};
-    sock.onclose=function(ev){if(on){ss("Session ended ("+ev.code+") — tap to restart","er","");stop();}};
+    sock.onerror=function(){ss("Connection error \u2014 tap to retry","er","");stop();};
+    sock.onclose=function(ev){if(on){ss("Session ended ("+ev.code+") \u2014 tap to restart","er","");stop();}};
   }catch(e){ss("Error: "+e.message,"er","Tap to retry");}
 }
 
@@ -190,7 +186,7 @@ function startMic(){
 
 function stop(){
   on=false;
-  clearInterval(pingT);pingT=null;
+  clearInterval(acResT);acResT=null;
   queue=[];decoding=false;nextT=0;
   orb.className="orb";ic.textContent="\uD83C\uDF3F";
   ss("Tap the orb to begin","","Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing");
