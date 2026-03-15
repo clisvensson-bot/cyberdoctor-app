@@ -29,7 +29,14 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 .brand{margin-top:12px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
 </style>
 </head>
-<body>
+<hbody>
+<!-- 
+  Android loudspeaker fix:
+  Audio chunks from Hume EVI are decoded via AudioContext but then routed
+  through a MediaStreamDestination -> HTML <audio> element.
+  The HTML audio element uses the "media" audio session = loudspeaker.
+-->
+<audio id="spkr" playsinline autoplay style="display:none"></audio>
 <div class="logo">CYBERDOCTOR</div>
 <div class="tag">Holistic &amp; Quantum Medicine AI &middot; Dialadoctor.global</div>
 <div class="wrap">
@@ -40,18 +47,20 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div class="status" id="st">Tap the orb to begin</div>
 <div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
 <div class="brand">Dialadoctor.global &middot; Hume EVI</div>
+ 
 <script>
 var C="fdd212af-9c46-4396-806e-dac64d005682";
 var K="PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d";
-var sock=null,stream=null,actx=null,proc=null,pCtx=null,acResT=null;
-var on=false;
-var nextT=0;
+var sock=null,stream=null,actx=null,proc=null;
+var pCtx=null,msDest=null,acResT=null;
+var on=false,nextT=0;
 var queue=[],decoding=false;
 
 var orb=document.getElementById("orb");
 var ic=document.getElementById("ic");
 var st=document.getElementById("st");
 var ht=document.getElementById("ht");
+var spkr=document.getElementById("spkr");
 
 function ss(m,c,h){st.textContent=m;st.className="status"+(c?" "+c:"");if(h!==undefined)ht.textContent=h;}
 function go(){on?stop():start();}
@@ -59,10 +68,22 @@ function go(){on?stop():start();}
 function initPlayCtx(){
   if(!pCtx||pCtx.state==="closed"){
     pCtx=new(window.AudioContext||window.webkitAudioContext)();
+    // Create MediaStreamDestination for loudspeaker routing on Android
+    try{
+      msDest=pCtx.createMediaStreamDestination();
+      spkr.srcObject=msDest.stream;
+      spkr.play().catch(function(){});
+    }catch(ex){msDest=null;}
     nextT=0;
   }
   if(pCtx.state==="suspended")pCtx.resume();
   return pCtx;
+}
+
+function getDestination(){
+  // Route audio through MediaStreamDestination (loudspeaker) if available,
+  // otherwise fall back to pCtx.destination (may be earpiece on Android)
+  return msDest||pCtx.destination;
 }
 
 function enqueue(b64){
@@ -103,7 +124,7 @@ function play(buf){
   if(nextT<now||nextT>now+8)nextT=now;
   var src=ctx.createBufferSource();
   src.buffer=buf;
-  src.connect(ctx.destination);
+  src.connect(getDestination());
   src.start(nextT);
   nextT+=buf.duration;
 }
@@ -118,13 +139,12 @@ function start(){
       on=true;
       orb.className="orb on";ic.textContent="\uD83C\uDF99\uFE0F";
       ss("Listening \u2014 speak freely","on","Ask about herbs, remedies, quantum healing");
-      // Send session_settings ONCE only at connection start
       sock.send(JSON.stringify({type:"session_settings",audio:{encoding:"linear16",sample_rate:16000,channels:1}}));
       startMic();
-      // AudioContext keepalive only - NO session_settings resend
       acResT=setInterval(function(){
         if(pCtx&&pCtx.state==="suspended")try{pCtx.resume();}catch(e){}
         if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
+        if(spkr&&spkr.paused&&msDest)try{spkr.play().catch(function(){});}catch(e){}
       },8000);
     };
     sock.onmessage=function(e){
@@ -176,7 +196,7 @@ function startMic(){
       var p=new Int16Array(out.length||d.length);
       var src2=ratio===1?d:out;
       for(var i=0;i<p.length;i++)p[i]=Math.max(-32768,Math.min(32767,(src2[i]||0)*32767));
-      var b=new Uint8Array(p.buffer),s2="";
+      var b=new Uint8Array(p.buffer)+s2="";
       for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
       try{sock.send(JSON.stringify({type:"audio_input",data:btoa(s2)}));}catch(ex){}
     };
@@ -194,6 +214,8 @@ function stop(){
   if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
   if(actx){try{actx.close();}catch(e){}actx=null;}
   if(pCtx){try{pCtx.close();}catch(e){}pCtx=null;}
+  msDest=null;
+  if(spkr)spkr.srcObject=null;
   if(sock){try{sock.close();}catch(e){}sock=null;}
 }
 
@@ -201,6 +223,7 @@ document.addEventListener("visibilitychange",function(){
   if(!document.hidden&&on){
     if(pCtx&&pCtx.state==="suspended")try{pCtx.resume();}catch(e){}
     if(actx&&actx.state==="suspended")try{actx.resume();}catch(e){}
+    if(spkr&&spkr.paused&&msDest)try{spkr.play().catch(function(){});}catch(e){}
   }
 });
 </script>
