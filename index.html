@@ -35,8 +35,8 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <body>
 <div id="pbar">
   <button class="pb" id="pb-hume" onclick="switchP('hume')">Hume EVI</button>
-  <button class="pb" id="pb-elevenlabs" onclick="switchP('elevenlabs')">ElevenLabs</button>
-  <button class="pb act" id="pb-retell" onclick="switchP('retell')">Retell AI</button>
+  <button class="pb act" id="pb-elevenlabs" onclick="switchP('elevenlabs')">ElevenLabs</button>
+  <button class="pb" id="pb-retell" onclick="switchP('retell')">Retell AI</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
 <div class="tag">Holistic &amp; Quantum Medicine AI &middot; Dialadoctor.global</div>
@@ -47,13 +47,13 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 </div>
 <div class="status" id="st">Tap the orb to begin</div>
 <div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
-<div class="brand">Dialadoctor.global &middot; <span id="pname">Retell AI</span></div>
+<div class="brand">Dialadoctor.global &middot; <span id="pname">ElevenLabs</span></div>
 
 <audio id="spkr" playsinline autoplay style="display:none"></audio>
 <audio id="silent" playsinline style="display:none"></audio>
 
 <script>
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
 var CFG = {
   hume: {
     apiKey: 'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d',
@@ -68,7 +68,7 @@ var CFG = {
   }
 };
 
-var prov = 'retell';
+var prov = 'elevenlabs';
 var on = false;
 
 var orb = document.getElementById('orb');
@@ -93,7 +93,7 @@ function switchP(p){
   if(on) stop();
   prov=p;
   document.querySelectorAll('.pb').forEach(function(b){b.classList.remove('act');});
-  document.getElementById('pb-'+ap).classList.add('act');
+  document.getElementById('pb-'+p).classList.add('act');
   pname.textContent = p==='hume' ? 'Hume EVI' : p==='retell' ? 'Retell AI' : 'ElevenLabs';
   ss('Tap the orb to begin','','Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing');
   orb.className='orb'; ic.textContent='\u{1F33F}';
@@ -117,9 +117,9 @@ function stop(){
   else stopElevenLabs();
 }
 
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-// ELEVENLABS COEEQSATIONAL AI PROVIDER
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+// ELEVENLABS CONVERSATIONAL AI PROVIDER
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 var elConv = null;
 
 function startElevenLabs(){
@@ -162,9 +162,9 @@ function stopElevenLabs(){
   if(elConv){try{elConv.endSession();}catch(e){}elConv=null;}
 }
 
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 // RETELL AI PROVIDER
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 var retellClient = null;
 
 function startRetell(){
@@ -215,9 +215,9 @@ function stopRetell(){
   if(retellClient){try{retellClient.stopCall();}catch(e){}retellClient=null;}
 }
 
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 // HUME EVI PROVIDER
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 var humeWs = null;
 var pCtx = null;
 var mStream = null;
@@ -313,7 +313,7 @@ function drainAudio(){
   pCtx.decodeAudioData(ab,function(buf){
     var src=pCtx.createBufferSource();
     src.buffer=buf;
-    // MediaStreamDestination → hidden audio element (loudspeaker routing on Android)
+    // MediaStreamDestination -> hidden audio element (loudspeaker routing on Android)
     var msd=pCtx.createMediaStreamDestination();
     src.connect(msd);
     spkr.srcObject=msd.stream;
