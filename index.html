@@ -13,7 +13,7 @@
 body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;-webkit-tap-highlight-color:transparent}
 #pbar{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;gap:8px;padding:10px 16px;background:rgba(10,10,26,.95);backdrop-filter:blur(12px);z-index:100;border-bottom:1px solid #1a1a3a}
 .pb{padding:6px 20px;border-radius:20px;border:1px solid #2a2a4a;background:transparent;color:#556;cursor:pointer;font-size:12px;letter-spacing:.05em;transition:all .2s;font-weight:500}
-.pb.act{background:#2a1a5a;border-color:#6644cc;color:#aaa8ff}
+.pb.act{background:#1a2a4a;border-color:#3399ff;color:#7ec8ff}
 .logo{font-size:2.2rem;font-weight:700;letter-spacing:.18em;color:#4fc3f7;margin-bottom:6px;margin-top:52px}
 .tag{font-size:.8rem;color:#455a64;margin-bottom:40px;letter-spacing:.06em;text-transform:uppercase}
 .wrap{position:relative;margin-bottom:30px}
@@ -34,7 +34,8 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 </head>
 <body>
 <div id="pbar">
-  <button class="pb act" id="pb-hume" onclick="switchP('hume')">Hume EVI</button>
+  <button class="pb" id="pb-hume" onclick="switchP('hume')">Hume EVI</button>
+  <button class="pb act" id="pb-elevenlabs" onclick="switchP('elevenlabs')">ElevenLabs</button>
   <button class="pb" id="pb-retell" onclick="switchP('retell')">Retell AI</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
@@ -46,17 +47,20 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 </div>
 <div class="status" id="st">Tap the orb to begin</div>
 <div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
-<div class="brand">Dialadoctor.global &middot; <span id="pname">Hume EVI</span></div>
+<div class="brand">Dialadoctor.global &middot; <span id="pname">ElevenLabs</span></div>
 
 <audio id="spkr" playsinline autoplay style="display:none"></audio>
 <audio id="silent" playsinline style="display:none"></audio>
 
 <script>
-// ── CONFIG: add more providers here ─────��───────────────────
+// ── CONFIG ──────────────────────────────────────────────────────────────────
 var CFG = {
   hume: {
     apiKey: 'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d',
     configId: 'fdd212af-9c46-4396-806e-dac64d005682'
+  },
+  elevenlabs: {
+    agentId: 'agent_4801kksye0h7fwer3stvz64jg64c'
   },
   retell: {
     apiKey: 'key_611c2c764a2f6f5423412d8e60ddv',
@@ -64,7 +68,7 @@ var CFG = {
   }
 };
 
-var prov = 'hume';
+var prov = 'elevenlabs';
 var on = false;
 
 var orb = document.getElementById('orb');
@@ -76,9 +80,7 @@ var pname = document.getElementById('pname');
 
 function ss(m,c,h){st.textContent=m;st.className='status'+(c?' '+c:'');if(h!==undefined)ht.textContent=h;}
 
-// ── LOUDSPEAKER UNLOCK ───────────────────────────────────────
-// On first tap: play silent audio via HTML audio element.
-// This forces Android Chrome to use media/loudspeaker routing instead of earpiece.
+// ── LOUDSPEAKER UNLOCK ─────────────────────────────────────────────────────
 function unlockSpeaker(){
   var s=document.getElementById('silent');
   s.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
@@ -86,13 +88,13 @@ function unlockSpeaker(){
   s.play().catch(function(){});
 }
 
-// ── PROVIDER SWITCH ──────────────────────────────────────────
+// ── PROVIDER SWITCH ─────────────────────────────────────────────────────────
 function switchP(p){
   if(on) stop();
   prov=p;
   document.querySelectorAll('.pb').forEach(function(b){b.classList.remove('act');});
   document.getElementById('pb-'+p).classList.add('act');
-  pname.textContent = p==='hume' ? 'Hume EVI' : 'Retell AI';
+  pname.textContent = p==='hume' ? 'Hume EVI' : p==='retell' ? 'Retell AI' : 'ElevenLabs';
   ss('Tap the orb to begin','','Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing');
   orb.className='orb'; ic.textContent='\u{1F33F}';
 }
@@ -102,7 +104,8 @@ function go(){on?stop():start();}
 function start(){
   unlockSpeaker();
   if(prov==='hume') startHume();
-  else startRetell();
+  else if(prov==='retell') startRetell();
+  else startElevenLabs();
 }
 
 function stop(){
@@ -110,251 +113,29 @@ function stop(){
   orb.className='orb'; ic.textContent='\u{1F33F}';
   ss('Tap the orb to begin','','Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing');
   if(prov==='hume') stopHume();
-  else stopRetell();
+  else if(prov==='retell') stopRetell();
+  else stopElevenLabs();
 }
 
-// ══════════════════════════════════════════════════════════════
-// HUME EVI PROVIDER
-// ══════════════════════════════════════════════════════════════
-var sock=null,stream=null,actx=null,proc=null;
-var pCtx=null,msDest=null,acResT=null;
-var nextT=0,queue=[],decoding=false;
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+// ELEVENLABS CONVERSATIONAL AI PROVIDER
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+var elConv = null;
 
-function initPCtx(){
-  if(!pCtx||pCtx.state==='closed'){
-    pCtx=new(window.AudioContext||window.webkitAudioContext)();
-    try{
-      msDest=pCtx.createMediaStreamDestination();
-      // Route audio through HTML element → forces loudspeaker on Android
-      spkr.srcObject=msDest.stream;
-      spkr.play().catch(function(){});
-    }catch(ex){msDest=null;}
-    nextT=0;
-  }
-  if(pCtx.state==='suspended')pCtx.resume();
-  return pCtx;
-}
-function getDest(){return msDest||pCtx.destination;}
-
-function enqueue(b64){queue.push(b64);drain();}
-function drain(){
-  if(decoding||!queue.length)return;
-  decoding=true;
-  var b64=queue.shift();
-  var bin=atob(b64);
-  var ab=new ArrayBuffer(bin.length);
-  var u8=new Uint8Array(ab);
-  for(var i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
-  var ctx=initPCtx();
-  ctx.decodeAudioData(ab.slice(0),function(buf){
-    playBuf(buf);decoding=false;drain();
-  },function(){
-    try{
-      var s16=new Int16Array(ab);
-      var f32=new Float32Array(s16.length);
-      for(var i=0;i<s16.length;i++)f32[i]=s16[i]/32768;
-      var b=ctx.createBuffer(1,f32.length,24000);
-      b.copyToChannel(f32,0);
-      playBuf(b);
-    }catch(e){}
-    decoding=false;drain();
-  });
-}
-function playBuf(buf){
-  var ctx=initPCtx();
-  var now=ctx.currentTime;
-  if(nextT<now||nextT>now+8)nextT=now;
-  var src=ctx.createBufferSource();
-  src.buffer=buf;
-  src.connect(getDest());
-  src.start(nextT);
-  nextT+=buf.duration;
-}
-
-function startHume(){
+function startElevenLabs(){
   on=true;
-  ss('Connecting...','','Please wait...');
-  queue=[];decoding=false;nextT=0;
-  initPCtx();
-  try{
-    sock=new WebSocket('wss://api.hume.ai/v0/evi/chat?config_id='+CFG.hume.configId+'&api_key='+CFG.hume.apiKey);
-    sock.onopen=function(){
-      on=true;
-      orb.className='orb on'; ic.textContent='\uD83C\uDF99\uFE0F';
-      ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');
-      sock.send(JSON.stringify({type:'session_settings',audio:{encoding:'linear16',sample_rate:16000,channels:1}}));
-      startMic();
-      acResT=setInterval(function(){
-        if(pCtx&&pCtx.state==='suspended')try{pCtx.resume();}catch(e){}
-        if(actx&&actx.state==='suspended')try{actx.resume();}catch(e){}
-        if(spkr&&spkr.paused&&msDest)try{spkr.play().catch(function(){});}catch(e){}
-      },8000);
-    };
-    sock.onmessage=function(e){
-      try{
-        var m=JSON.parse(e.data);
-        if(m.type==='audio_output'&&m.data){
-          orb.className='orb sp';ic.textContent='\uD83D\uDC04';
-          ss('Speaking...','sp','');
-          enqueue(m.data);
-        }
-        if(m.type==='user_message'){
-          queue=[];decoding=false;
-          orb.className='orb on';ic.textContent='\uD83C\uDF99\uFE0F';
-          ss('Listening...','on','');nextT=0;
-        }
-        if(m.type==='assistant_end'){
-          setTimeout(function(){
-            if(on&&pCtx&&nextT<=pCtx.currentTime+0.2){
-              orb.className='orb on';ic.textContent='\uD83C\uDF99\uFE0F';
-              ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');
-            }
-          },Math.max(0,(nextT-(pCtx?pCtx.currentTime:0))*1000+300));
-        }
-        if(m.type==='error'){
-          ss('Error: '+(m.message||'unknown')+' \u2014 tap to retry','er','');
-          stopHume();
-        }
-      }catch(x){}
-    };
-    sock.onerror=function(){ss('Connection error \u2014 tap to retry','er','Check Hume credits');stopHume();};
-    sock.onclose=function(ev){
-      if(on)ss('Disconnected ('+ev.code+') \u2014 tap to retry','er','Tap orb to reconnect');
-      on=false;clearInterval(acResT);acResT=null;
-      queue=[];decoding=false;nextT=0;
-      orb.className='orb';ic.textContent='\u{1F33F}';
-      if(proc){try{proc.disconnect();}catch(e){}proc=null;}
-      if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
-      if(actx){try{actx.close();}catch(e){}actx=null;}
-      if(pCtx){try{pCtx.close();}catch(e){}pCtx=null;}
-      msDest=null;
-      if(spkr)spkr.srcObject=null;
-      if(sock){try{sock.close();}catch(e){}sock=null;}
-    };
-  }catch(e){ss('Error: '+e.message,'er','Tap to retry');}
-}
-
-function startMic(){
-  navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}})
-  .then(function(s){
-    stream=s;
-    try{actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
-    catch(ex){actx=new(window.AudioContext||window.webkitAudioContext)();}
-    try{actx.resume();}catch(ex){}
-    var src=actx.createMediaStreamSource(s);
-    proc=actx.createScriptProcessor(4096,1,1);
-    var ratio=Math.max(1,Math.round(actx.sampleRate/16000));
-    proc.onaudioprocess=function(ev){
-      if(!sock||sock.readyState!==1)return;
-      if(actx.state==='suspended')try{actx.resume();}catch(ex){}
-      var d=ev.inputBuffer.getChannelData(0);
-      var out=ratio===1?d:[];
-      if(ratio!==1)for(var i=0;i<d.length;i+=ratio)out.push(d[i]);
-      var p=new Int16Array(out.length||d.length);
-      var src2=ratio===1?d:out;
-      for(var i=0;i<p.length;i++)p[i]=Math.max(-32768,Math.min(32767,(src2[i]||0)*32767));
-      var b=new Uint8Array(p.buffer),s2='';
-      for(var j=0;j<b.byteLength;j++)s2+=String.fromCharCode(b[j]);
-      try{sock.send(JSON.stringify({type:'audio_input',data:btoa(s2)}));}catch(ex){}
-    };
-    src.connect(proc);proc.connect(actx.destination);
-  }).catch(function(er){ss('Microphone needed','er','Allow mic in browser settings');});
-}
-
-function stopHume(){
-  on=false;
-  clearInterval(acResT);acResT=null;
-  queue=[];decoding=false;nextT=0;
-  if(proc){try{proc.disconnect();}catch(e){}proc=null;}
-  if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
-  if(actx){try{actx.close();}catch(e){}actx=null;}
-  if(pCtx){try{pCtx.close();}catch(e){}pCtx=null;}
-  msDest=null;
-  if(spkr)spkr.srcObject=null;
-  if(sock){try{sock.close();}catch(e){}sock=null;}
-}
-
-// ══════════════════════════════════════════════════════════════
-// RETELL AI PROVIDER
-// ══════════════════════════════════════════════════════════════
-var retellClient=null;
-
-function startRetell(){
-  on=true;
-  ss('Connecting to Retell...','','Please wait...');
+  ss('Connecting to ElevenLabs...','','Please wait...');
   orb.className='orb on';
-
-  loadScript('https://unpkg.com/@retell-ai/web-call-sdk@latest/dist/index.umd.js')
+  loadScript('https://unpkg.com/@elevenlabs/client@0.15.1/dist/lib.umd.js')
   .then(function(){
-    return fetch('https://api.retellai.com/v2/create-web-call',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+CFG.retell.apiKey,'Content-Type':'application/json'},
-      body:JSON.stringify({agent_id:CFG.retell.agentId})
-    });
-  })
-  .then(function(r){
-    if(!r.ok)throw new Error('Retell API error '+r.status);
-    return r.json();
-  })
-  .then(function(data){
-    // Find RetellWebClient constructor in window scope
-    var RC=window.RetellWebClient;
-    if(!RC){
-      for(var k in window){
-        try{
-          if(window[k]&&typeof window[k]==='function'&&window[k].prototype&&typeof window[k].prototype.startCall==='function'){
-            RC=window[k];break;
-          }
-        }catch(e){}
-      }
-    }
-    if(!RC)throw new Error('Retell SDK not loaded');
-    retellClient=new RC();
-    retellClient.on('call_started',function(){
-      ic.textContent='\uD83C\uDF99\uFE0F';orb.className='orb on';
-      ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');
-    });
-    retellClient.on('call_ended',function(){
-      if(on){on=false;orb.className='orb';ic.textContent='\u{1F33F}';ss('Tap the orb to begin','','Natural remedies \u00B7 Quantum healing');}
-    });
-    retellClient.on('error',function(e){ss('Error: '+e,'er','');stopRetell();});
-    retellClient.on('update',function(u){
-      if(u&&u.transcript&&u.transcript.length){
-        var last=u.transcript[u.transcript.length-1];
-        if(last.role==='agent'){orb.className='orb sp';ic.textContent='\uD83D\uDC04';ss('Speaking...','sp','');}
-        else if(last.role==='user'){orb.className='orb on';ic.textContent='\uD83C\uDF99\uFE0F';ss('Listening...','on','');}
-      }
-    });
-    return retellClient.startCall({accessToken:data.access_token});
-  })
-  .catch(function(e){
-    ss('Error: '+e.message,'er','Tap to retry');
-    on=false;orb.className='orb';ic.textContent='\u{1F33F}';
-  });
-}
-
-function stopRetell(){
-  on=false;
-  if(retellClient){try{retellClient.stopCall();}catch(e){}retellClient=null;}
-}
-
-function loadScript(src){
-  return new Promise(function(res,rej){
-    if(document.querySelector('script[src="'+src+'"]')){res();return;}
-    var s=document.createElement('script');
-    s.src=src;s.onload=res;
-    s.onerror=function(){rej(new Error('Failed to load SDK'));};
-    document.head.appendChild(s);
-  });
-}
-
-document.addEventListener('visibilitychange',function(){
-  if(!document.hidden&&on&&prov==='hume'){
-    if(pCtx&&pCtx.state==='suspended')try{pCtx.resume();}catch(e){}
-    if(actx&&actx.state==='suspended')try{actx.resume();}catch(e){}
-    if(spkr&&spkr.paused&&msDest)try{spkr.play().catch(function(){});}catch(e){}
-  }
-});
-</script>
-</body>
-</html>
+    var EL = window.ElevenLabsClient;
+    if(!EL || !EL.Conversation) throw new Error('ElevenLabs SDK not found');
+    return EL.Conversation.startSession({
+      agentId: CFG.elevenlabs.agentId,
+      onConnect: function(){
+        ic.textContent='\uD83C\uDF99\uFE0F'; orb.className='orb on';
+        ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');
+      },
+      onDisconnect: function(){
+        if(on){on=false;orb.className='orb';ic.textContent='\u{1F33F}';ss('Tap the orb to begin','','Natural remedies \u00B7 Quantum healing');}
+        elConv=
