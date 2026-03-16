@@ -35,40 +35,30 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <body>
 <div id="pbar">
   <button class="pb" id="pb-hume" onclick="switchP('hume')">Hume EVI</button>
-  <button class="pb act" id="pb-elevenlabs" onclick="switchP('elevenlabs')">ElevenLabs</button>
-  <button class="pb" id="pb-retell" onclick="switchP('retell')">Retell AI</button>
+  <button class="pb" id="pb-elevenlabs" onclick="switchP('elevenlabs')">ElevenLabs</button>
+  <button class="pb act" id="pb-retell" onclick="switchP('retell')">Retell AI</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
 <div class="tag">Holistic &amp; Quantum Medicine AI &middot; Dialadoctor.global</div>
 <div class="wrap">
   <div class="ring r1"></div>
   <div class="ring r2"></div>
-  <div class="orb" id="orb" onclick="go()"><span class="icon" id="ic">&#127807;</span></div>
-</div>
+  <div class="orb" id="orb" onclick="go()"><span class="icon" id="ic">&#127807;</ic></div></div>
 <div class="status" id="st">Tap the orb to begin</div>
 <div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
-<div class="brand">Dialadoctor.global &middot; <span id="pname">ElevenLabs</span></div>
+<div class="brand">Dialadoctor.global &middot; <span id="pname">Retell AI</span></div>
 
 <audio id="spkr" playsinline autoplay style="display:none"></audio>
 <audio id="silent" playsinline style="display:none"></audio>
 
 <script>
-// ── CONFIG ──────────────────────────────────────────────────────────────────
 var CFG = {
-  hume: {
-    apiKey: 'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d',
-    configId: 'fdd212af-9c46-4396-806e-dac64d005682'
-  },
-  elevenlabs: {
-    agentId: 'agent_4801kksye0h7fwer3stvz64jg64c'
-  },
-  retell: {
-    apiKey: 'key_611c2c764a2f6f5423412d8e60ddv',
-    agentId: 'agent_905ffac77cbe65f4b93194bb81'
-  }
+  hume: {apiKey: 'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d',configId: 'fdd212af-9c46-4396-806e-dac64d005682'},
+  elevenlabs: {agentId: 'agent_4801kksye0h7fwer3stvz64jg 64c'},
+  retell: {apiKey: 'key_611c2c764a2f6f5423412d8e60ddv',agentId: 'agent_905ffac77cbe65f4b93194bb81'}
 };
 
-var prov = 'elevenlabs';
+var prov = 'retell';
 var on = false;
 
 var orb = document.getElementById('orb');
@@ -80,7 +70,6 @@ var pname = document.getElementById('pname');
 
 function ss(m,c,h){st.textContent=m;st.className='status'+(c?' '+c:'');if(h!==undefined)ht.textContent=h;}
 
-// ── LOUDSPEAKER UNLOCK ─────────────────────────────────────────────────────
 function unlockSpeaker(){
   var s=document.getElementById('silent');
   s.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
@@ -88,12 +77,11 @@ function unlockSpeaker(){
   s.play().catch(function(){});
 }
 
-// ── PROVIDER SWITCH ─────────────────────────────────────────────────────────
 function switchP(p){
   if(on) stop();
   prov=p;
   document.querySelectorAll('.pb').forEach(function(b){b.classList.remove('act');});
-  document.getElementById('pb-'+p).classList.add('act');
+  document.getElementById('pb-'+ap).classList.add('act');
   pname.textContent = p==='hume' ? 'Hume EVI' : p==='retell' ? 'Retell AI' : 'ElevenLabs';
   ss('Tap the orb to begin','','Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing');
   orb.className='orb'; ic.textContent='\u{1F33F}';
@@ -117,11 +105,7 @@ function stop(){
   else stopElevenLabs();
 }
 
-// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
-// ELEVENLABS CONVERSATIONAL AI PROVIDER
-// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 var elConv = null;
-
 function startElevenLabs(){
   on=true;
   ss('Connecting to ElevenLabs...','','Please wait...');
@@ -130,12 +114,138 @@ function startElevenLabs(){
   .then(function(){
     var EL = window.ElevenLabsClient;
     if(!EL || !EL.Conversation) throw new Error('ElevenLabs SDK not found');
-    return EL.Conversation.startSession({
-      agentId: CFG.elevenlabs.agentId,
-      onConnect: function(){
-        ic.textContent='\uD83C\uDF99\uFE0F'; orb.className='orb on';
-        ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');
-      },
-      onDisconnect: function(){
-        if(on){on=false;orb.className='orb';ic.textContent='\u{1F33F}';ss('Tap the orb to begin','','Natural remedies \u00B7 Quantum healing');}
-        elConv=
+    return EL.Conversation.startSession({agentId: CFE.elevenlabs.agentId,
+      onConnect:function(){ic.textContent='\uD83C\uDF99\uFE0F';orb.className='orb on';ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');},
+      onDisconnect:function(){if(on){on=false;orb.className='orb';ic.textContent='\u{1F33F}';ss('Tap the orb to begin','','Natural remedies \u00B7 Quantum healing');}elConv=null;},
+      onError:function(e){ss-('ElevenLabs error','er','Check connection');console.error(e);on=false;orb.className='orb';ic.textContent='\u{1F33F}';},
+      onModeChange:function(m){if(m.mode==='speaking'){orb.className='orb sp';ss('Speaking...','sp');}else{orb.className='orb on';ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');}}
+    });
+  }).then(function(c){elConv=c;}).catch(function(e){ss('Failed to connect','er','Check internet connection');console.error(e);on=false;orb.className='orb';ic.textContent='\u{1F33F}';});
+}
+function stopElevenLabs(){if(elConv){try{elConv.endSession();}catch(e){}elConv=null;}}
+
++var retellClient = null;
+function startRetell(){
+  on=true;
+  ss('Connecting to Retell AI...','','Please wait...');
+  orb.className='orb on';
+  loadScript('https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.umd.js')
+  .then(function(){
+    var RC = window.RetellWebClient;
+    if(!RC) throw new Error('Retell SDK not loaded');
+    retellClient = new RC();
+    retellClient.on('call_started',function(){ic.textContent='\uD83C\uDF99\uFE0F';om=className='orb on';ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');});
+    retellClient.on('call_ended',function(){if(on){on=false;orb.className='orb';ic.textContent='\u{1F33F}';ss('Tap the orb to begin','','Natural remedies \u00B7 Quantum healing');}});
+    retellClient.on('agent_start_talking',function(){orb.className='orb sp';ss-('Speaking...','sp');});
+    retellClient.on('agent_stop_talking',function(){orb.className='orb on';ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');});
+    retellClient.on('error',function(e){ss('Retell error','er','Check connection');console.error(e);on=false;orb.className='orb';ic.textContent='\u{1F33F}';});
+    return fetch('https://api.retellai.com/v2/create-web-call',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer 'key_611c2c764a2f6f5423412d8e60ddv'},body:JSON.stringify({agent_id:CFG.retell.agentId})});
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.access_token) throw new Error('No access token: '+JSON.stringify(d));
+    return retellClient.startCall({accessToken:d.access_token,sampleRate:16000,captureDeviceId:'default',emitRawAudioSamples:false});
+  })
+  .catch(function(e){ss-('Failed to connect','er','Check internet connection');console.error(e);on=false;orb.className='orb';ic.textContent='\u{1F33F}';});
+}
+function stopRetell(){if(retellClient){try{retellClient.stopCall();}catch(e){}retellClient=null;}}
+
++var humeWs = null;
+var pCtx = null;
+var mStream = null;
+var mProc = null;
+var nextT = 0;
+var audioQueue = [];
+var draining = false;
+
+function startHume(){
+  on=true;
+  ss('Connecting to Hume EVI...','','Please wait...');
+  orb.className='orb on';
+  var url='wss://api.hume.ai/v0/evi/chat?api_key='+CFG.hume.apiKeyx'+config_id='+CFG.hume.configId;
+  humeWs=new WebSocket(url);
+  humeWs.onopen=function(){
+    humeWs.send(JSON.stringify({type:'session_settings',audio:{mencoding:'linear16',sample_rate:16000,channels:1}}));
+    startMic();
+  };
+  humeWs.onmessage=function(e){
+    var msg=JSON.parse(e.data);
+    if(msg.type==='chat_metadata'){ic.textContent='\uD83C\uDF99\uFE0F';orb.className='orb on';ss-('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');}
+    else if(msg.type==='audio_output'){enqueueAudio(msg.data);}
+    else if(msg.type==='assistant_message'){orb.className='orb sp';ss('Speaking...','sp');}
+    else if(msg.type==='user_message'){orb.className='orb on';ss('Listening \u2014 speak freely','on');}
+    else if(msg.type==='error'){ss('Hume error: '+msg.code,'er');console.error('Hume',msg);}
+  };
+  humeWs.onerror=function(e){ss-('Connection error','er');console.error(e);};
+  humeWs.onclose=function(){if(on){on=false;orb.className='orb';ic.textContent='\u{1F33F}';ss('Tap the orb to begin','','Natural remedies \u00B7 Quantum healing');}};
+}
+
+function stopHume(){
+  stopMic();
+  if(humeWs){try{humeWs.close();}catch(e){}humeWs=null;}
+  if(pCtx){try{pCtx.close();}catch(e){}pCtx=null;}
+  audioQueue=[];draining=false;nextT=0;
+}
+
+function startMic(){
+  if(!pCtx) pCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+  if(pCtx.state==='suspended') pCtx.resume();
+  navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}})
+  .then(function(stream){
+    mStream=stream;
+    var src=pCtx.createMediaStreamSource(stream);
+    mProc=pCtx.createScriptProcessor(4096,1,1);
+    mProc.onaudioprocess=function(e){
+      if(!on||!humeWs||humeWs.readyState!==1) return;
+      var f=e.inputBuffer.getChannelData(0);
+      var r=f.length;if(r<1)r=1;
+      var b=new Int16Array(r);
+      for(var i=0;i<r;i++){var s=Math.max(-1,Math.min(1,f[i]));b[i]=s<0?s*=32768:s*=32767;}
+      var s2='';var u=new Uint8Array(b.buffer);
+      for(var j=0;j<u.length;j++) s2+=String.fromCharCode(u[j]);
+      humeWs.send(JSON.stringify({type:'audio_input',data:btoa(s2)}));
+    };
+    src.connect(mProc); mProc.connect(pCtx.destination);
+  })
+  .catch(function(e){ss('Mic error','er');console.error(e);});
+}
+
+function stopMic(){
+  if(mProc){try{mProc.disconnect();}catch(e){}mProc=null;}
+  if(mStream){mStream.getTracks().forEach(function(t){t.stop();});mStream=null;}
+}
+
+function enqueueAudio(b64){audioQueue.push(b64);if(!draining) drainAudio();}
+
+function drainAudio(){
+  if(!audioQueue.length){draining=false;return;}
+  draining=true;
+  var b64=audioQueue.shift();
+  var bin=atob(b64);
+  var ab=new ArrayBuffer(bin.length);
+  var view=new Uint8Array(ab);
+  for(var i=0;i<bin.length;i++) view[i]=bin.charCodeAt(i);
+  if(!pCtx) pCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+  pCtx.decodeAudioData(ab,function(buf){
+    var src=pCtx.createBufferSource();src.buffer=buf;
+    var msd=pCtx.createMediaStreamDestination();
+    src.connect(msd);spkr.srcObject=msd.stream;spkr.play().catch(function(){});
+    src.connect(pCtx.destination);
+    var now=pCtx.currentTime;
+    if(nextT<now-0.3||nextT>now+2.0) nextT=now;
+    src.start(nextT);nextT+=buf.duration;
+    src.onended=drainAudio;
+  },function(){drainAudio();});
+}
+
+function loadScript(src){
+  return new Promise(function(resolve,reject){
+    if(document.querySelector('script[src="'+src+'"]')){resolve();return;}
+    var s=document.createElement('script');
+    s.src=src;s.onload=resolve;s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
+</script>
+</body>
+</html>
