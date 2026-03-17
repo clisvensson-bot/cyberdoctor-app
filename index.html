@@ -53,7 +53,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <audio id="silent" playsinline style="display:none"></audio>
 
 <script>
-// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
 var CFG = {
   hume: {
     apiKey: 'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d',
@@ -80,15 +80,30 @@ var pname = document.getElementById('pname');
 
 function ss(m,c,h){st.textContent=m;st.className='status'+(c?' '+c:'');if(h!==undefined)ht.textContent=h;}
 
-// ─── LOUDSPEAKER UNLOCK ───────────────────────────────────────────────────────
-function unlockSpeaker(){
-  var s=document.getElementById('silent');
-  s.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-  s.volume=0.001;
+// ─── AUDIO UNLOCK ─────────────────────────────────────────────────────────────
+// Pre-unlock audio on user gesture so SDK's internal AudioContext can play
+function unlockAudio(){
+  // Method 1: Resume/create a silent AudioContext
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if(ctx.state === 'suspended') ctx.resume();
+    // Play 10ms of silence through it then close
+    var buf = ctx.createBuffer(1, ctx.sampleRate * 0.01, ctx.sampleRate);
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+    src.onended = function(){ try{ctx.close();}catch(e){} };
+  } catch(e){}
+
+  // Method 2: Play silent WAV through hidden audio element
+  var s = document.getElementById('silent');
+  s.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  s.volume = 0.001;
   s.play().catch(function(){});
 }
 
-// ─── PROVIDER SWITCH ──────────────────────────────────────────────────────────
+// ─── PROVIDER SWITCH ─────────────────────────────────────────────────────────
 function switchP(p){
   if(on) stop();
   prov=p;
@@ -102,7 +117,7 @@ function switchP(p){
 function go(){on?stop():start();}
 
 function start(){
-  unlockSpeaker();
+  unlockAudio();
   if(prov==='hume') startHume();
   else if(prov==='retell') startRetell();
   else startElevenLabs();
@@ -133,6 +148,8 @@ function startElevenLabs(){
     if(!EL || !EL.Conversation) throw new Error('ElevenLabs SDK not found');
     return EL.Conversation.startSession({
       agentId: CFG.elevenlabs.agentId,
+      // Force websocket mode: avoids LiveKit WebRTC track autoplay block
+      connectionType: 'websocket',
       onConnect: function(){
         ic.textContent='\uD83C\uDF99\uFE0F'; orb.className='orb on';
         ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');
@@ -152,7 +169,11 @@ function startElevenLabs(){
       }
     });
   })
-  .then(function(c){elConv=c;})
+  .then(function(c){
+    elConv=c;
+    // Ensure volume is active
+    if(elConv && elConv.setVolume) elConv.setVolume({volume:1.0});
+  })
   .catch(function(e){
     ss('Failed to connect','er','Check internet connection');
     console.error(e); on=false; orb.className='orb'; ic.textContent='\u{1F33F}';
@@ -331,7 +352,7 @@ function drainAudio(){
   });
 }
 
-// ─── UTILITY ──────────────────────────────────────────────────────────────────
+// ─── UTILITY ─────────────────────────────────────────────────────────────────
 function loadScript(src){
   return new Promise(function(resolve,reject){
     if(document.querySelector('script[src="'+src+'"]')){resolve();return;}
