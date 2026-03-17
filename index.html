@@ -8,12 +8,14 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CYBERDOCTOR">
+<!-- PRE-LOAD ElevenLabs SDK synchronously so startSession() fires inside user gesture -->
+<script src="https://unpkg.com/@elevenlabs/client@0.15.1/dist/lib.umd.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;-webkit-tap-highlight-color:transparent}
 #pbar{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;gap:8px;padding:10px 16px;background:rgba(10,10,26,.95);backdrop-filter:blur(12px);z-index:100;border-bottom:1px solid #1a1a3a}
 .pb{padding:6px 20px;border-radius:20px;border:1px solid #2a2a4a;background:transparent;color:#556;cursor:pointer;font-size:12px;letter-spacing:.05em;transition:all .2s;font-weight:500}
-.pb.act{background:#1a2a4a;border-color:#3399ff;color:#7ec8ff}
+.pb.act{background:#1a2a4a;border-color:#3399ff;color:#7ec8fe}
 .logo{font-size:2.2rem;font-weight:700;letter-spacing:.18em;color:#4fc3f7;margin-bottom:6px;margin-top:52px}
 .tag{font-size:.8rem;color:#455a64;margin-bottom:40px;letter-spacing:.06em;text-transform:uppercase}
 .wrap{position:relative;margin-bottom:30px}
@@ -49,11 +51,14 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
 <div class="brand">Dialadoctor.global &middot; <span id="pname">ElevenLabs</span></div>
 
+<!-- Hidden audio element for ElevenLabs output -->
 <audio id="spkr" playsinline autoplay style="display:none"></audio>
 <audio id="silent" playsinline style="display:none"></audio>
 
 <script>
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
+// CONFIG
+// ──────────────────────────────────────────────────────────────
 var CFG = {
   hume: {
     apiKey: 'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d',
@@ -63,7 +68,7 @@ var CFG = {
     agentId: 'agent_4801kksye0h7fwer3stvz64jg64c'
   },
   retell: {
-    apiKey: 'key_611c2c764a2f6f5423412d8e60ddv',
+    apiKey: 'key_611c2c764a2f6f542341 2d8e60ddv',
     agentId: 'agent_905ffac77cbe65f4b93194bb81'
   }
 };
@@ -78,32 +83,24 @@ var ht = document.getElementById('ht');
 var spkr = document.getElementById('spkr');
 var pname = document.getElementById('pname');
 
-function ss(m,c,h){st.textContent=m;st.className='status'+(c?' '+c:'');if(h!==undefined)ht.textContent=h;}
+// Persistent AudioContext - created once on first gesture, never closed
+var gAudioCtx = null;
 
-// ─── AUDIO UNLOCK ─────────────────────────────────────────────────────────────
-// Pre-unlock audio on user gesture so SDK's internal AudioContext can play
-function unlockAudio(){
-  // Method 1: Resume/create a silent AudioContext
-  try {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if(ctx.state === 'suspended') ctx.resume();
-    // Play 10ms of silence through it then close
-    var buf = ctx.createBuffer(1, ctx.sampleRate * 0.01, ctx.sampleRate);
-    var src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start(0);
-    src.onended = function(){ try{ctx.close();}catch(e){} };
-  } catch(e){}
-
-  // Method 2: Play silent WAV through hidden audio element
-  var s = document.getElementById('silent');
-  s.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-  s.volume = 0.001;
-  s.play().catch(function(){});
+function getAudioCtx() {
+  if (!gAudioCtx || gAudioCtx.state === 'closed') {
+    gAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (gAudioCtx.state === 'suspended') {
+    gAudioCtx.resume();
+  }
+  return gAudioCtx;
 }
 
-// ─── PROVIDER SWITCH ─────────────────────────────────────────────────────────
+function ss(m,c,h){st.textContent=m;st.className='status'+(c?' '+c:'');if(h!==undefined)ht.textContent=h;}
+
+// ──────────────────────────────────────────────────────────────
+// PROVIDER SWITCH
+// ──────────────────────────────────────────────────────────────
 function switchP(p){
   if(on) stop();
   prov=p;
@@ -117,7 +114,8 @@ function switchP(p){
 function go(){on?stop():start();}
 
 function start(){
-  unlockAudio();
+  // Resume/create AudioContext INSIDE the user gesture (synchronous)
+  getAudioCtx();
   if(prov==='hume') startHume();
   else if(prov==='retell') startRetell();
   else startElevenLabs();
@@ -132,49 +130,50 @@ function stop(){
   else stopElevenLabs();
 }
 
-// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 // ELEVENLABS CONVERSATIONAL AI PROVIDER
-// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+// SDK is pre-loaded in <head> so startSession() runs inside gesture window
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 var elConv = null;
 
 function startElevenLabs(){
-  on=true;
+  on = true;
   ss('Connecting to ElevenLabs...','','Please wait...');
   orb.className='orb on';
-  loadScript('https://unpkg.com/@elevenlabs/client@0.15.1/dist/lib.umd.js')
-  .then(function(){
-    // SDK v0.15.1 exports to window.client (not window.ElevenLabsClient)
-    var EL = window.client;
-    if(!EL || !EL.Conversation) throw new Error('ElevenLabs SDK not found');
-    return EL.Conversation.startSession({
-      agentId: CFG.elevenlabs.agentId,
-      // Force websocket mode: avoids LiveKit WebRTC track autoplay block
-      connectionType: 'websocket',
-      onConnect: function(){
-        ic.textContent='\uD83C\uDF99\uFE0F'; orb.className='orb on';
-        ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');
-      },
-      onDisconnect: function(){
-        if(on){on=false;orb.className='orb';ic.textContent='\u{1F33F}';ss('Tap the orb to begin','','Natural remedies \u00B7 Quantum healing');}
-        elConv=null;
-      },
-      onError: function(e){
-        ss('ElevenLabs error','er','Check connection');
-        console.error('EL error',e);
-        on=false; orb.className='orb'; ic.textContent='\u{1F33F}';
-      },
-      onModeChange: function(m){
-        if(m.mode==='speaking'){orb.className='orb sp';ss('Speaking...','sp');}
-        else{orb.className='orb on';ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');}
-      }
-    });
-  })
-  .then(function(c){
+
+  // SDK is already loaded (sync <script> in <head>)
+  // window.client is the export name for @elevenlabs/client v0.15.1
+  var EL = window.client;
+  if(!EL || !EL.Conversation){
+    ss('ElevenLabs SDK not loaded','er','Refresh the page');
+    on=false; orb.className='orb'; ic.textContent='\u{1F33F}';
+    return;
+  }
+
+  EL.Conversation.startSession({
+    agentId: CFG.elevenlabs.agentId,
+    onConnect: function(){
+      ic.textContent='\uD83C\uDF99\uFE0F'; orb.className='orb on';
+      ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');
+    },
+    onDisconnect: function(){
+      if(on){on=false;orb.className='orb';ic.textContent='\u{1F33F}';ss('Tap the orb to begin','','Natural remedies \u00B7 Quantum healing');}
+      elConv=null;
+    },
+    onError: function(e){
+      ss('ElevenLabs error','er','Check connection');
+      console.error('EL error',e);
+      on=false; orb.className='orb'; ic.textContent='\u{1F33F}';
+    },
+    onModeChange: function(m){
+      if(m.mode==='speaking'){orb.className='orb sp';ss('Speaking...','sp');}
+      else{orb.className='orb on';ss('Listening \u2014 speak freely','on','Ask about herbs, remedies, quantum healing');}
+    }
+  }).then(function(c){
     elConv=c;
-    // Ensure volume is active
+    // Set volume to maximum
     if(elConv && elConv.setVolume) elConv.setVolume({volume:1.0});
-  })
-  .catch(function(e){
+  }).catch(function(e){
     ss('Failed to connect','er','Check internet connection');
     console.error(e); on=false; orb.className='orb'; ic.textContent='\u{1F33F}';
   });
@@ -184,9 +183,9 @@ function stopElevenLabs(){
   if(elConv){try{elConv.endSession();}catch(e){}elConv=null;}
 }
 
-// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 // RETELL AI PROVIDER
-// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 var retellClient = null;
 
 function startRetell(){
@@ -237,9 +236,9 @@ function stopRetell(){
   if(retellClient){try{retellClient.stopCall();}catch(e){}retellClient=null;}
 }
 
-// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 // HUME EVI PROVIDER
-// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+// ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 var humeWs = null;
 var pCtx = null;
 var mStream = null;
@@ -252,6 +251,8 @@ function startHume(){
   on=true;
   ss('Connecting to Hume EVI...','','Please wait...');
   orb.className='orb on';
+  // Reuse persistent context for Hume too
+  pCtx = getAudioCtx();
   var url='wss://api.hume.ai/v0/evi/chat?api_key='+CFG.hume.apiKey+'&config_id='+CFG.hume.configId;
   humeWs=new WebSocket(url);
   humeWs.onopen=function(){
@@ -283,12 +284,10 @@ function startHume(){
 function stopHume(){
   stopMic();
   if(humeWs){try{humeWs.close();}catch(e){}humeWs=null;}
-  if(pCtx){try{pCtx.close();}catch(e){}pCtx=null;}
   audioQueue=[];draining=false;nextT=0;
 }
 
 function startMic(){
-  if(!pCtx) pCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
   if(pCtx.state==='suspended') pCtx.resume();
   navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}})
   .then(function(stream){
@@ -298,8 +297,7 @@ function startMic(){
     mProc.onaudioprocess=function(e){
       if(!on||!humeWs||humeWs.readyState!==1) return;
       var f=e.inputBuffer.getChannelData(0);
-      var r=f.length;
-      if(r<1) r=1;
+      var r=f.length; if(r<1) r=1;
       var b=new Int16Array(r);
       for(var i=0;i<r;i++){var s=Math.max(-1,Math.min(1,f[i]));b[i]=s<0?s*32768:s*32767;}
       var s2='';
@@ -331,11 +329,10 @@ function drainAudio(){
   var ab=new ArrayBuffer(bin.length);
   var view=new Uint8Array(ab);
   for(var i=0;i<bin.length;i++) view[i]=bin.charCodeAt(i);
-  if(!pCtx) pCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+  if(!pCtx) pCtx=getAudioCtx();
   pCtx.decodeAudioData(ab,function(buf){
     var src=pCtx.createBufferSource();
     src.buffer=buf;
-    // MediaStreamDestination -> hidden audio element (loudspeaker routing on Android)
     var msd=pCtx.createMediaStreamDestination();
     src.connect(msd);
     spkr.srcObject=msd.stream;
@@ -347,12 +344,13 @@ function drainAudio(){
     nextT+=buf.duration;
     src.onended=drainAudio;
   },function(){
-    // fallback: skip bad chunk
     drainAudio();
   });
 }
 
-// ─── UTILITY ─────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
+// UTILITY
+// ──────────────────────────────────────────────────────────────
 function loadScript(src){
   return new Promise(function(resolve,reject){
     if(document.querySelector('script[src="'+src+'"]')){resolve();return;}
