@@ -48,10 +48,10 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id=bp-sv class=pb onclick=setL('sv')>SV</button>
 </div>
 <div class=logo>CYBERDOCTOR</div>
-<div class=tag id=tagline>v13b</div>
+<div class=tag id=tagline>v13c</div>
 <div class=wrap>
-<div class=ring r1></div>
-<div class=ring r2></div>
+<div class="ring r1"></div>
+<div class="ring r2"></div>
 <div id=orb class=orb onclick=go()><div class=icon id=ic>&#x1F33F;</div></div>
 </div>
 <div id=status class=status></div>
@@ -59,7 +59,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div class=brand>by CLI</div>
 <script>
 var pCtx=null,nextT=0,on=false,lang='pl',prov='elevenlabs',stopping=false,stopCooldown=false;
-var elConvs={}; // keyed by lang code, supports multiple simultaneous convs
+var elConvs={};
 
 var AGENTS={
   elevenlabs:{en:'agent_4801kksye0h7fwer3stvz64jg64c',pl:'agent_3401kkynw95qfvh9vjt0k1nk71xm',sv:'agent_0101kkyywztkehtbntx2a43b7bna'},
@@ -67,8 +67,8 @@ var AGENTS={
 
 var I18N={
   en:{idle:'Tap the orb to talk',idleHint:'Your AI doctor is ready',listening:'Listening...',listeningHint:'Say anything about your health',speaking:'Speaking...',er:'Error'},
-  pl:{idle:'Dotknij orba, aby porozmawiać',idleHint:'Twój lekarz AI jest gotowy',listening:'Słucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'Mówię...',er:'Błąd'},
-  sv:{idle:'Tryck på orben för att prata',idleHint:'Din AI-läkare är redo',listening:'Lyssnar...',listeningHint:'Säg vad som helst om din hälsa',speaking:'Talar...',er:'Fel'},
+  pl:{idle:'Dotknij orba, aby porozmawiać',idleHint:'Twój lekarz AI jest gotowy',histening:'Słucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'Mówię...',er:'BąĄ'},
+  sv:{idle:'Tryck på orben för att prata',idleHint:'Din AI-läkare är Redo',listening:'Lyssnar...',listeningHint:'Säg vad som helst om din hälsa',speaking:'Talar...',er:'Fel'},
 };
 
 function t(k){return (I18N[lang]||I18N.en)[k]||k;}
@@ -86,7 +86,7 @@ function setL(l){
   updateBar();
   ss(t('idle'),'',t('idleHint'));
 }
-function updateBar(){h
+function updateBar(){
   ['el','hume','re'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
   ['en','pl','sv'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
   var pm={'elevenlabs':'el','hume':'hume','retell':'re'};
