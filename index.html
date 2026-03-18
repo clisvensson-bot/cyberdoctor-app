@@ -8,7 +8,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CYBERDOCTOR">
-<!-- PRE-LOAD ElevenLabs SDK synchronously so startSession() fires inside user gesture -->
 <script src="https://unpkg.com/@elevenlabs/client@0.15.1/dist/lib.umd.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -49,61 +48,386 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
   <button class="lb" id="lb-sv" onclick="switchLang('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">Holistic &amp; Quantum Medicine AI &middot; Dialadoctor.global</div>
+<div class="tag" id="tagline">Holistyczna i Kwantowa Medycyna AI &middot; Dialadoctor.global</div>
 <div class="wrap">
   <div class="ring r1"></div>
   <div class="ring r2"></div>
   <div class="orb" id="orb" onclick="go()"><span class="icon" id="ic">&#127807;</span></div>
 </div>
-<div class="status" id="st">Tap the orb to begin</div>
-<div class="hint" id="ht">Natural remedies &middot; Herbal medicine &middot; Quantum healing</div>
+<div class="status" id="st">Dotknij orba, aby zaczac</div>
+<div class="hint" id="ht">Naturalne remedia &middot; Medycyna ziolowa &middot; Uzdrawianie kwantowe</div>
 <div class="brand">Dialadoctor.global &middot; <span id="pname">ElevenLabs</span></div>
 <audio id="spkr" playsinline autoplay style="display:none"></audio>
-<audio id="silent" playsinline style="display:none"></audio>
+
 <script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
 var CFG = {
-  hume:{apiKey:'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d',configId:'fdd212af-9c46-4396-806e-dac64d005682'},
-  elevenlabs:{
-    agents:{
-      en:'agent_4801kksye0h7fwer3stvz64jg64c',
-      pl:'agent_3401kkynw95qfvh9vjt0k1nk71xm',
-      sv:'agent_0101kkyywztkehtbntx2a43b7bna'
+  hume: {
+    apiKey: 'PlTB4AADM5ISBlH8NG1a4NayxFLBHUBoMLxImRzG3g9AAV9d',
+    configId: 'fdd212af-9c46-4396-806e-dac64d005682'
+  },
+  elevenlabs: {
+    agents: {
+      en: 'agent_4801kksye0h7fwer3stvz64jg64c',
+      pl: 'agent_3401kkynw95qfvh9vjt0k1nk71xm',
+      sv: 'agent_0101kkyywztkehtbntx2a43b7bna'
     }
   },
-  retell:{apiKey:'key_611c2c764a2f6f5423412d8e60dd7',agentId:'agent_905ffac77cbe65f4b93194bb81'}
+  retell: {
+    apiKey: 'key_611c2c764a2f6f5423412d8e60dd7',
+    agentId: 'agent_905ffac77cbe65f4b93194bb81'
+  }
 };
+
+// ── TRANSLATIONS ─────────────────────────────────────────────────────────────
 var LANG = {
-  en:{tagline:'Holistic & Quantum Medicine AI \u00B7 Dialadoctor.global',idle:'Tap the orb to begin',idleHint:'Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing',connecting:'Connecting to {p}...',waiting:'Please wait...',listening:'Listening \u2014 speak freely',listeningHint:'Ask about herbs, remedies, quantum healing',speaking:'Speaking...',sdkError:'ElevenLabs SDK not loaded',sdkHint:'Refresh the page',connError:'Failed to connect',connHint:'Check internet connection',elError:'ElevenLabs error',elHint:'Check connection',retellError:'Retell error',umeError:'Hume error: {code}',micError:'Mic error',connGeneral:'Connection error'},
-  pl:{tagline:'Holistyczna i Kwantowa Medycyna AI \u00B7 Dialadoctor.global',idle:'Dotkn\u0105j orba, aby zacz\u0105\u0107',idleHint:'Naturalne remedia \u00B7 Medycyna zi\u00F3\u0142owa \u00B7 Uzdrawianie kwantowe',connecting:'Po\u0142\u0105czono z {p}...',waiting:'Prosz\u0119 czeka\u0107...',listening:'S\u0142ucham \u2014 m\u00F3w swobodnie',listeningHint:'Zapytaj o zi\u00F3\u0142a, remedia, uzdrawianie kwantowe',speaking:'M\u00F3wi...',sdkError:'Nie za\u0142adowano SDK ElevenLabs',sdkHint:'Od\u015Bwie\u017C stron\u0119',connError:'Po\u0142\u0105czenie nieudane',connHint:'Sprawd\u017A po\u0142\u0105czenie internetowe',elError:'B\u0142\u0105d ElevenLabs',elHint:'Sprawd\u017A po\u0142\u0105czenie'retellError:'B\u0142\u0105d Retell',humeError:'B\u0142\u0105d Hume: {code}',micError:'B\u0142\u0105d mikrofonu',connGeneral:'B\u0142\u0105d po\u0142\u0105czenia'},
-  sv:{tagline:'Holistisk & Kvantmedicinsk AI \u00B7 Dialadoctor.global',idle:'Tryck p\u00E5 orben f\u00F6r att b\u00F6rja',idleHint:'Naturliga l\u00E4kemedel \u00B7 \u00D6rtmedicin \u00B7 Kvantl\u00E4kning',connecting:'Ansluter till {p}...',waiting:'V\u00E4lligen v\u00E4nta...',listening:'Lyssnar \u2014 tala fritt',listeningHint:'Fr\u00E5ga om \u00F6rter, l\u00E4kemedel, kvantl\u00E4kning',speaking:'Talar...',sdkError:'ElevenLabs SDK inte inl\u00E4st',sdkHint:'Uppdatera sidan',connError:'Anslutning misslyckades',connHint:'Kontrollera internetanslutningen',elError:'ElevenLabs-fel',elHint:'Kontrollera anslutningen',retellError:'Retell-fel',humeError:'Hume-fel: {code}',micError:'Mikrofon fel',connGeneral:'Anslutningsfel'}
+  en: {
+    tagline: 'Holistic & Quantum Medicine AI \u00B7 Dialadoctor.global',
+    idle: 'Tap the orb to begin',
+    idleHint: 'Natural remedies \u00B7 Herbal medicine \u00B7 Quantum healing',
+    connecting: 'Connecting to {p}...',
+    waiting: 'Please wait...',
+    listening: 'Listening \u2014 speak freely',
+    listeningHint: 'Ask about herbs, remedies, quantum healing',
+    speaking: 'Speaking...',
+    sdkError: 'ElevenLabs SDK not loaded',
+    sdkHint: 'Refresh the page',
+    connError: 'Failed to connect',
+    connHint: 'Check internet connection',
+    elError: 'ElevenLabs error',
+    elHint: 'Check connection',
+    retellError: 'Retell error',
+    humeError: 'Hume error: {code}',
+    micError: 'Mic error',
+    connGeneral: 'Connection error'
+  },
+  pl: {
+    tagline: 'Holistyczna i Kwantowa Medycyna AI \u00B7 Dialadoctor.global',
+    idle: 'Dotknij orba, aby zacz\u0105\u0107',
+    idleHint: 'Naturalne remedia \u00B7 Medycyna zi\u00F3\u0142owa \u00B7 Uzdrawianie kwantowe',
+    connecting: 'Po\u0142\u0105czono z {p}...',
+    waiting: 'Prosz\u0119 czeka\u0107...',
+    listening: 'S\u0142ucham \u2014 m\u00F3w swobodnie',
+    listeningHint: 'Zapytaj o zi\u00F3\u0142a, remedia, uzdrawianie kwantowe',
+    speaking: 'M\u00F3wi...',
+    sdkError: 'Nie za\u0142adowano SDK ElevenLabs',
+    sdkHint: 'Od\u015Bwie\u017C stron\u0119',
+    connError: 'Po\u0142\u0105czenie nieudane',
+    connHint: 'Sprawd\u017A po\u0142\u0105czenie internetowe',
+    elError: 'B\u0142\u0105d ElevenLabs',
+    elHint: 'Sprawd\u017A po\u0142\u0105czenie',
+    retellError: 'B\u0142\u0105d Retell',
+    humeError: 'B\u0142\u0105d Hume: {code}',
+    micError: 'B\u0142\u0105d mikrofonu',
+    connGeneral: 'B\u0142\u0105d po\u0142\u0105czenia'
+  },
+  sv: {
+    tagline: 'Holistisk & Kvantmedicinsk AI \u00B7 Dialadoctor.global',
+    idle: 'Tryck p\u00E5 orben f\u00F6r att b\u00F6rja',
+    idleHint: 'Naturliga l\u00E4kemedel \u00B7 \u00D6rtmedicin \u00B7 Kvantl\u00E4kning',
+    connecting: 'Ansluter till {p}...',
+    waiting: 'V\u00E4nligen v\u00E4nta...',
+    listening: 'Lyssnar \u2014 tala fritt',
+    listeningHint: 'Fr\u00E5ga om \u00F6rter, l\u00E4kemedel, kvantl\u00E4kning',
+    speaking: 'Talar...',
+    sdkError: 'ElevenLabs SDK inte inl\u00E4st',
+    sdkHint: 'Uppdatera sidan',
+    connError: 'Anslutning misslyckades',
+    connHint: 'Kontrollera internetanslutningen',
+    elError: 'ElevenLabs-fel',
+    elHint: 'Kontrollera anslutningen',
+    retellError: 'Retell-fel',
+    humeError: 'Hume-fel: {code}',
+    micError: 'Mikrofon fel',
+    connGeneral: 'Anslutningsfel'
+  }
 };
-var currentLang='pl';
-function t(k,v){var s=(LANG[currentLang]&&LANG[currentLang][k])?LANG[currentLang][k]:LANG['en'][k];if(v)Object.keys(v).forEach(function(k){s=s.replace('{'+k+'}',v[k]);});return s;}
-function switchLang(l){currentLang=l;document.querySelectorAll('.lb').forEach(function(b){b.classList.remove('act');});document.getElementById('lb-'+l).classList.add('act');document.getElementById('tagline').textContent=t('tagline');document.documentElement.lang=l;if(!on)ss(t('idle'),'',t('idleHint'));}
-var prov='elevenlabs',on=false,orb=document.getElementById('orb'),ic=document.getElementById('ic'),st=document.getElementById('st'),ht=document.getElementById('ht'),pname=document.getElementById('pname');
-document.getElementById('tagline').textContent=t('tagline');st.textContent=t('idle');ht.textContent=t('idleHint');
-var gAudioCtx=null;
-function getAudioCtx(){if(!gAudioCtx||gAudioCtx.state==='closed')gAudioCtx=new(window.AudioContext||window.webkitAudioContext)();if(gAudioCtx.state==='suspended')gAudioCtx.resume();return gAudioCtx;}
-function ss(m,c,h){st.textContent=m;st.className='status'+(c?' '+c:'');if(h!==undefined)ht.textContent=h;}
-function switchP(p){if(on)stop();prov=p;document.querySelectorAll('.pb').forEach(function(b){b.classList.remove('act');});document.getElementById('pb-'+p).classList.add('act');pname.textContent=p==='hume'?'Hume EVI':p==='retell'?'Retell AI':'ElevenLabs';ss(t('idle'),'',t('idleHint'));orb.className='orb';ic.textContent='\u01F33F';}
-function go(){on?stop():start();}
-function start(){getAudioCtx();if(prov==='hume')startHume();else if(prov==='retell')startRetell();else startElevenLabs();}
-function stop(){on=false;orb.className='orb';ic.textContent='\u01F33F';ss_t('idle'),'',t('idleHint'));if(prov==='hume')stopHume();else if(prov==='retell')stopRetell();else stopElevenLabs();}
-var elConv=null;
-function startElevenLabs(){on=true;ss(t('connecting',{p:'ElevenLabs'}),'',t('waiting'));orb.className='orb on';var EL=window.client;if(!EL||!ELConversation){ss_t('sdkError'),'er',t('sdkHint'));on=false;orb.className='orb';ic.textContent='\u01F33F';return;}var agentId=CFG.elevenlabs.agents[currentLang]||CFG.elevenlabs.agents.en;EL.Conversation.startSession({agentId:agentId,onConnect:function(){ic.textContent='\uD83C\uDF99\uFE0F';orb.className='orb on';ss(t('listening'),'on',t('listeningHint'));},onDisconnect:function(){if(on){on=false;orb.className='orb';ic.textContent='\u01F33F';ss_t('idle'),'',t('idleHint'));}elConv=null;},onError:function(e){ss_t('elError'),'er',t('elHint'));console.error('EL error',e);on=false;orb.className='orb';ic.textContent='\u01F33F';},onModeChange:function(m){if(m.mode==='speaking'){orb.className='orb sp';ss(t('speaking'),'sp');}else{orb.className='orb on';ss_t('listening'),'on',t('listeningHint'));}}}).then(function(c){elConv=c;if(elConv&&elConv.setVolume)elConv.setVolume({volume:1.0});}).catch(function(e){ss(t('connError'),'er',t('connHint'));console.error(e);on=false;orb.className='orb';ic.textContent='\u01F33F';});}
-function stopElevenLabs(){if(elConv){try{elConv.endSession();}catch(e){}elConv=null;}}
-var retellClient=null;
-function startRetell(){on=true;ss(t('connecting',{p:'Retell AI'}),'',t('waiting'));orb.className='orb on';loadScript('https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.umd.js').then(function(){var RC=window.RetellWebClient;if(!RC)throw new Error('Retell SDK not loaded');retellClient=new RC();retellClient.on('call_started',function(){ic.textContent='\uD83C\uDF99\uFE0F';ob.className='orb on';ss(t('listening'),'on',t('listeningHint'));});retellClient.on('call_ended',function(){if(on){on=false;orb.className='orb';ic.textContent='\u01F33F';ss(t('idle'),'',t('idleHint'));}});retellClient.on('agent_start_talking',function(){orb.className='orb sp';ss(t('speaking'),'sp');});retellClient.on('agent_stop_talking',function(){orb.className='orb on';ss(t('listening'),'on',t('listeningHint'));});retellClient.on('error',function(e){ss_t('retellError'),'er',t('elHint'));console.error('Retell error',e);on=false;orb.className='orb';ic.textContent='\u01F33F';});return fetch('https://api.retellai.com/v2/create-web-call',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+CFG.retell.apiKey},body:JSON.stringify({agent_id:CFG.retell.agentId})});}).then(function(r){return r.json();}).then(function(d){if(!d.access_token)throw new Error('No access token: '+JSON.stringify(d));return retellClient.startCall({accessToken:d.access_token,sampleRate:16000,captureDeviceId:'default',emitRawAudioSamples:false});}).catch(function(e){ss(t('connError'),'er',t('connHint'));console.error(e);on=false;orb.className='orb';ic.textContent='\u01F33F';});}
-function stopRetell(){if(retellClient){try{retellClient.stopCall();}catch(e){}retellClient=null;}}
-var humeWs=null,pCtx=null,mStream=null,mProc=null,nextT=0,audioQueue=[],draining=false;
-function startHume(){on=true;sst('connecting',{p:'Hume EVI',}),'',t('waiting'));orb.className='orb on';pCtx=getAudioCtx();var url='wss://api.hume.ai/v0/evi/chat?api_key='+CFG.hume.apiKey+'&config_id='+CFG.hume.configId;humeWs=new WebSocket(url);humeWs.onopen=function(){humeWs.send(JSON.stringify({type:'session_settings',audio:{encoding:'linear16',sample_rate:16000,channels:1}}));startMic();};humeWs.onmessage=function(e){var msg=JSON.parse(e.data);if(msg.type==='chat_metadata'){ic.textContent='\uD83C\uDF99\uFE0F';ob.className='orb on';ss(t('listening'),'on',t('listeningHint'));}else if(msg.type==='audio_output'){enqueueAudio(msg.data);}else if(msg.type==='assistant_message'){orb.className='orb sp';ss(t('speaking'),'sp');}else if(msg.type==='user_message'){orb.className='orb on';ss_t('listening'),'on');}else if(msg.type==='error'){ss(t('humeError',{code:msg.code}),'er');console.error('Hume',msg);}};humeWs.onerror=function(e){ss(t('connGeneral'),'er');console.error(e);};humeWs.onclose=function(){if(on){on=false;orb.className='orb';ic.textContent='\u01F33F';ss_t('idle'),'',t('idleHint'));}};}
-function stopHume(){stopMic();if(humeWs){try{humeWs.close();}catch(e){}humeWs=null;}audioQueue=[];draining=false;nextT=0;}
-function startMic(){if(pCtx.state==='suspended')pCtx.resume();navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}}).then(function(stream){mStream=stream;var src=pCtx.createMediaStreamSource(stream);mProc=pCtx.createScriptProcessor(4096,1,1);mProc.onaudioprocess=function(e){if(!on||!humeWs||humeWs.readyState!==1)return;var f=e.inputBuffer.getChannelData(0);var r=f.length;if(r<1*r=1;var b=new Int16Array(r);for(var i=0;i<r;i++){var s=Math.max(-1,Math.min(1,f[i]));b[i]=s<0?s+32768:s*32767;}var s2='';var u=new Uint8Array(b.buffer);for(var j=0;j<u.length;j++)s2+=String.fromCharCode(u[j]);humeWs.send(JSON.stringify({type:'audio_input',data:btoa(s2)}));};src.connect(mProc);mProc.connect(pCtx.destination);}).catch(function(e){ss(t('micError'),'er');console.error(e);});}
-function stopMic(){if(mProc){try{mProc.disconnect();}catch(e){}mProc=null;}if(mStream){mStream.getTracks().forEach(function(t){t.stop();});mStream=null;}}
-function enqueueAudio(b64){audioQueue.push(b64);if(!draining)drainAudio();}
-function drainAudio(){if(!audioQueue.length){draining=false;return;}draining=true;var b64=audioQueue.shift();var bin=atob(b64);var ab=new ArrayBuffer(bin.length);var view=new Uint8Array(ab);for(var i=0;i<bin.length;i++)view[i]=bin.charCodeAt(i);if(!pCtx)pCtx=getAudioCtx();if(pCtx.state==='suspended')pCtx.resume();pCtx.decodeAudioData(ab,function(buf){var src=pCtx.createBufferSource();src.buffer=buf;src.connect(pCtx.destination);var now=pCtx.currentTime;if(nextT<now-0.3||nextT>now+2.0)nextT=now;src.start(nextT);nextT+=buf.duration;src.onended=drainAudio;},function(){drainAudio();});}
-function loadScript(src){return new Promise(function(resolve,reject){if(document.querySelector('script[src="'+src+'"]')){resolve();return;}var s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&gAudioCtx&&gAudioCtx.state==='suspended')gAudioCtx.resume();});
+
+var currentLang = 'pl';
+
+function t(key, vars) {
+  var str = (LANG[currentLang] && LANG[currentLang][key]) ? LANG[currentLang][key] : LANG.en[key];
+  if (vars) { Object.keys(vars).forEach(function(k) { str = str.replace('{' + k + '}', vars[k]); }); }
+  return str;
+}
+
+function switchLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lb').forEach(function(b) { b.classList.remove('act'); });
+  document.getElementById('lb-' + lang).classList.add('act');
+  document.getElementById('tagline').textContent = t('tagline');
+  document.documentElement.lang = lang;
+  if (!on) { ss(t('idle'), '', t('idleHint')); }
+}
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+var prov = 'elevenlabs';
+var on = false;
+var orb = document.getElementById('orb');
+var ic = document.getElementById('ic');
+var st = document.getElementById('st');
+var ht = document.getElementById('ht');
+var pname = document.getElementById('pname');
+
+var gAudioCtx = null;
+
+function getAudioCtx() {
+  if (!gAudioCtx || gAudioCtx.state === 'closed') {
+    gAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (gAudioCtx.state === 'suspended') { gAudioCtx.resume(); }
+  return gAudioCtx;
+}
+
+function ss(m, c, h) {
+  st.textContent = m;
+  st.className = 'status' + (c ? ' ' + c : '');
+  if (h !== undefined) ht.textContent = h;
+}
+
+function switchP(p) {
+  if (on) stop();
+  prov = p;
+  document.querySelectorAll('.pb').forEach(function(b) { b.classList.remove('act'); });
+  document.getElementById('pb-' + p).classList.add('act');
+  pname.textContent = p === 'hume' ? 'Hume EVI' : p === 'retell' ? 'Retell AI' : 'ElevenLabs';
+  ss(t('idle'), '', t('idleHint'));
+  orb.className = 'orb';
+  ic.textContent = '\u{1F33F}';
+}
+
+function go() { on ? stop() : start(); }
+
+function start() {
+  getAudioCtx();
+  if (prov === 'hume') startHume();
+  else if (prov === 'retell') startRetell();
+  else startElevenLabs();
+}
+
+function stop() {
+  on = false;
+  orb.className = 'orb';
+  ic.textContent = '\u{1F33F}';
+  ss(t('idle'), '', t('idleHint'));
+  if (prov === 'hume') stopHume();
+  else if (prov === 'retell') stopRetell();
+  else stopElevenLabs();
+}
+
+// ── ELEVENLABS ───────────────────────────────────────────────────────────────
+var elConv = null;
+
+function startElevenLabs() {
+  on = true;
+  ss(t('connecting', { p: 'ElevenLabs' }), '', t('waiting'));
+  orb.className = 'orb on';
+  var EL = window.client;
+  if (!EL || !EL.Conversation) {
+    ss(t('sdkError'), 'er', t('sdkHint'));
+    on = false; orb.className = 'orb'; ic.textContent = '\u{1F33F}';
+    return;
+  }
+  var agentId = CFG.elevenlabs.agents[currentLang] || CFG.elevenlabs.agents.en;
+  EL.Conversation.startSession({
+    agentId: agentId,
+    onConnect: function() {
+      ic.textContent = '\uD83C\uDF99\uFE0F';
+      orb.className = 'orb on';
+      ss(t('listening'), 'on', t('listeningHint'));
+    },
+    onDisconnect: function() {
+      if (on) { on = false; orb.className = 'orb'; ic.textContent = '\u{1F33F}'; ss(t('idle'), '', t('idleHint')); }
+      elConv = null;
+    },
+    onError: function(e) {
+      ss(t('elError'), 'er', t('elHint'));
+      console.error('EL error', e);
+      on = false; orb.className = 'orb'; ic.textContent = '\u{1F33F}';
+    },
+    onModeChange: function(m) {
+      if (m.mode === 'speaking') { orb.className = 'orb sp'; ss(t('speaking'), 'sp'); }
+      else { orb.className = 'orb on'; ss(t('listening'), 'on', t('listeningHint')); }
+    }
+  }).then(function(c) {
+    elConv = c;
+    if (elConv && elConv.setVolume) elConv.setVolume({ volume: 1.0 });
+  }).catch(function(e) {
+    ss(t('connError'), 'er', t('connHint'));
+    console.error(e); on = false; orb.className = 'orb'; ic.textContent = '\u{1F33F}';
+  });
+}
+
+function stopElevenLabs() {
+  if (elConv) { try { elConv.endSession(); } catch(e) {} elConv = null; }
+}
+
+// ── RETELL AI ────────────────────────────────────────────────────────────────
+var retellClient = null;
+
+function startRetell() {
+  on = true;
+  ss(t('connecting', { p: 'Retell AI' }), '', t('waiting'));
+  orb.className = 'orb on';
+  loadScript('https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.umd.js')
+  .then(function() {
+    var RC = window.RetellWebClient;
+    if (!RC) throw new Error('Retell SDK not loaded');
+    retellClient = new RC();
+    retellClient.on('call_started', function() {
+      ic.textContent = '\uD83C\uDF99\uFE0F'; orb.className = 'orb on';
+      ss(t('listening'), 'on', t('listeningHint'));
+    });
+    retellClient.on('call_ended', function() {
+      if (on) { on = false; orb.className = 'orb'; ic.textContent = '\u{1F33F}'; ss(t('idle'), '', t('idleHint')); }
+    });
+    retellClient.on('agent_start_talking', function() { orb.className = 'orb sp'; ss(t('speaking'), 'sp'); });
+    retellClient.on('agent_stop_talking', function() { orb.className = 'orb on'; ss(t('listening'), 'on', t('listeningHint')); });
+    retellClient.on('error', function(e) {
+      ss(t('retellError'), 'er', t('elHint'));
+      console.error('Retell error', e);
+      on = false; orb.className = 'orb'; ic.textContent = '\u{1F33F}';
+    });
+    return fetch('https://api.retellai.com/v2/create-web-call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CFG.retell.apiKey },
+      body: JSON.stringify({ agent_id: CFG.retell.agentId })
+    });
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (!d.access_token) throw new Error('No access token: ' + JSON.stringify(d));
+    return retellClient.startCall({ accessToken: d.access_token, sampleRate: 16000, captureDeviceId: 'default', emitRawAudioSamples: false });
+  })
+  .catch(function(e) {
+    ss(t('connError'), 'er', t('connHint'));
+    console.error(e); on = false; orb.className = 'orb'; ic.textContent = '\u{1F33F}';
+  });
+}
+
+function stopRetell() {
+  if (retellClient) { try { retellClient.stopCall(); } catch(e) {} retellClient = null; }
+}
+
+// ── HUME EVI ─────────────────────────────────────────────────────────────────
+var humeWs = null;
+var pCtx = null;
+var mStream = null;
+var mProc = null;
+var nextT = 0;
+var audioQueue = [];
+var draining = false;
+
+function startHume() {
+  on = true;
+  ss(t('connecting', { p: 'Hume EVI' }), '', t('waiting'));
+  orb.className = 'orb on';
+  pCtx = getAudioCtx();
+  var url = 'wss://api.hume.ai/v0/evi/chat?api_key=' + CFG.hume.apiKey + '&config_id=' + CFG.hume.configId;
+  humeWs = new WebSocket(url);
+  humeWs.onopen = function() {
+    humeWs.send(JSON.stringify({ type: 'session_settings', audio: { encoding: 'linear16', sample_rate: 16000, channels: 1 } }));
+    startMic();
+  };
+  humeWs.onmessage = function(e) {
+    var msg = JSON.parse(e.data);
+    if (msg.type === 'chat_metadata') {
+      ic.textContent = '\uD83C\uDF99\uFE0F'; orb.className = 'orb on';
+      ss(t('listening'), 'on', t('listeningHint'));
+    } else if (msg.type === 'audio_output') {
+      enqueueAudio(msg.data);
+    } else if (msg.type === 'assistant_message') {
+      orb.className = 'orb sp'; ss(t('speaking'), 'sp');
+    } else if (msg.type === 'user_message') {
+      orb.className = 'orb on'; ss(t('listening'), 'on');
+    } else if (msg.type === 'error') {
+      ss(t('humeError', { code: msg.code }), 'er');
+      console.error('Hume', msg);
+    }
+  };
+  humeWs.onerror = function(e) { ss(t('connGeneral'), 'er'); console.error(e); };
+  humeWs.onclose = function() {
+    if (on) { on = false; orb.className = 'orb'; ic.textContent = '\u{1F33F}'; ss(t('idle'), '', t('idleHint')); }
+  };
+}
+
+function stopHume() {
+  stopMic();
+  if (humeWs) { try { humeWs.close(); } catch(e) {} humeWs = null; }
+  audioQueue = []; draining = false; nextT = 0;
+}
+
+function startMic() {
+  if (pCtx.state === 'suspended') pCtx.resume();
+  navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+  .then(function(stream) {
+    mStream = stream;
+    var src = pCtx.createMediaStreamSource(stream);
+    mProc = pCtx.createScriptProcessor(4096, 1, 1);
+    mProc.onaudioprocess = function(e) {
+      if (!on || !humeWs || humeWs.readyState !== 1) return;
+      var f = e.inputBuffer.getChannelData(0);
+      var r = f.length; if (r < 1) r = 1;
+      var b = new Int16Array(r);
+      for (var i = 0; i < r; i++) { var s = Math.max(-1, Math.min(1, f[i])); b[i] = s < 0 ? s * 32768 : s * 32767; }
+      var s2 = '';
+      var u = new Uint8Array(b.buffer);
+      for (var j = 0; j < u.length; j++) s2 += String.fromCharCode(u[j]);
+      humeWs.send(JSON.stringify({ type: 'audio_input', data: btoa(s2) }));
+    };
+    src.connect(mProc);
+    mProc.connect(pCtx.destination);
+  })
+  .catch(function(e) { ss(t('micError'), 'er'); console.error(e); });
+}
+
+function stopMic() {
+  if (mProc) { try { mProc.disconnect(); } catch(e) {} mProc = null; }
+  if (mStream) { mStream.getTracks().forEach(function(t) { t.stop(); }); mStream = null; }
+}
+
+function enqueueAudio(b64) {
+  audioQueue.push(b64);
+  if (!draining) drainAudio();
+}
+
+function drainAudio() {
+  if (!audioQueue.length) { draining = false; return; }
+  draining = true;
+  var b64 = audioQueue.shift();
+  var bin = atob(b64);
+  var ab = new ArrayBuffer(bin.length);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < bin.length; i++) view[i] = bin.charCodeAt(i);
+  if (!pCtx) pCtx = getAudioCtx();
+  if (pCtx.state === 'suspended') pCtx.resume();
+  pCtx.decodeAudioData(ab, function(buf) {
+    var src = pCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(pCtx.destination);
+    var now = pCtx.currentTime;
+    if (nextT < now - 0.3 || nextT > now + 2.0) nextT = now;
+    src.start(nextT);
+    nextT += buf.duration;
+    src.onended = drainAudio;
+  }, function() { drainAudio(); });
+}
+
+// ── UTILITY ──────────────────────────────────────────────────────────────────
+function loadScript(src) {
+  return new Promise(function(resolve, reject) {
+    if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
+    var s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && gAudioCtx && gAudioCtx.state === 'suspended') {
+    gAudioCtx.resume();
+  }
+});
 </script>
 </body>
 </html>
