@@ -86,7 +86,7 @@ function setL(l){
   updateBar();
   ss(t('idle'),'',t('idleHint'));
 }
-function updateBar(){
+function updateBar(){h
   ['el','hume','re'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
   ['en','pl','sv'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
   var pm={'elevenlabs':'el','hume':'hume','retell':'re'};
@@ -94,7 +94,7 @@ function updateBar(){
   document.getElementById('bp-'+lang).classList.add('act');
 }
 
-function go(){if(stopping||stopCooldown)return;or?stop():start();}
+function go(){if(stopping||stopCooldown)return;ohn?stop():start();}
 function start(){
   if(stopping||stopCooldown)return;
   getAudioCtx();
@@ -116,7 +116,7 @@ function stop(){
 }
 
 function startOneLang(langCode){
-  var aid=AGENTS.elevenlabs[langCode]||ABGENTS.elevenlabs.en;
+  var aid=AGENTS.elevenlabs[langCode]||AGENTS.elevenlabs.en;
   ElevenLabs.Conversation.startSession({
     agentId:aid,
     onConnect:function(){if(stopping||!on)return;ic.textContent='\uD83C\uDF99\uFE0F';orb.className='orb on';ss(t('listening'),'on',t('listeningHint'));},
@@ -150,7 +150,7 @@ function stopOneLang(langCode){
 
 function stopElevenLabs(){
   var keys=Object.keys(elConvs);
-  keys.forEach(function(k){stopOneLang(k){});
+  keys.forEach(function(k){stopOneLang(k);});
   elConvs={};
 }
 
