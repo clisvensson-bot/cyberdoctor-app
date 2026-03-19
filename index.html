@@ -48,7 +48,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">v17</div>
+<div class="tag" id="tagline">v18</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -73,8 +73,8 @@ var AGENTS={
 
 var I18N={
   en:{idle:'Tap the orb to talk',idleHint:'Your AI doctor is ready',listening:'Listening...',listeningHint:'Say anything about your health',speaking:'Speaking...',er:'Error'},
-  pl:{idle:'Dotknij orba, aby porozmawiaÄ‡',idleHint:'TwÃ³j lekarz AI jest gotowy',listening:'SÅ‚ucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'MÃ³wiÄ™...',er:'BÅ‚Ä…d'},
-  sv:{idle:'Tryck pÃ¥ orben fÃ¶r att prata',idleHint:'Din AI-lÃ¤kare Ã¤r Redo',listening:'Lyssnar...',listeningHint:'SÃ¤g vad som helst om din hÃ¤lsa',speaking:'Talar...',er:'Fel'}
+  pl:{idle:'Dotknij orba, aby porozmawia',idleHint:'Twój lekarz AI jest gotowy',listening:'SBucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'Mówi...',er:'BBd'},
+  sv:{idle:'Tryck på orben för att prata',idleHint:'Din AI-läkare är Redo',listening:'Lyssnar...',listeningHint:'Säg vad som helst om din hälsa',speaking:'Talar...',er:'Fel'}
 };
 
 function dbg(msg){
@@ -83,7 +83,9 @@ function dbg(msg){
   el.innerHTML=el.innerHTML+(el.innerHTML?'<br>':'')+msg;
 }
 
+window.addEventListener("error",function(e){if(e.message&&e.message.indexOf("error_type")>=0){e.preventDefault();return false;}},true);
 window.onerror=function(msg,src,line,col,err){
+if(msg&&msg.indexOf("error_type")>=0)return true;
   dbg('JS ERROR: '+msg+' (line '+line+')');
   return false;
 };
@@ -301,7 +303,8 @@ import('https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/+esm').then(funct
     dbg('EL=Conversation OK - ready');
   } else if(mod.default && mod.default.Conversation){
     EL=mod.default.Conversation;
-    dbg('EL=default.Conversation OK - ready');} else {
+    dbg('EL=default.Conversation OK - ready');
+  } else {
     var found=null;
     Object.keys(mod).forEach(function(k){
       if(mod[k]&&typeof mod[k].startSession==='function')found=mod[k];
