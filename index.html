@@ -48,7 +48,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">v18</div>
+<div class="tag" id="tagline">v19</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -61,6 +61,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <script>
 var pCtx=null,nextT=0,on=false,lang='pl',prov='elevenlabs',stopping=false,stopCooldown=false;
 var elConvs={};
+var elMicStreams={};
 var EL=null;
 
 var AGENTS={
@@ -83,14 +84,32 @@ function dbg(msg){
   el.innerHTML=el.innerHTML+(el.innerHTML?'<br>':'')+msg;
 }
 
-window.addEventListener("error",function(e){if(e.message&&e.message.indexOf("error_type")>=0){e.preventDefault();return false;}},true);
+// Aggressively suppress the SDK internal error_type crash.
+// This crash is cosmetic - the SDK throws it internally when processing
+// server messages but it should NOT cause a disconnect. We intercept it
+// at every possible level so the SDK's own catch handler never sees it.
+window.addEventListener('error',function(e){
+  try{if(e&&e.message&&e.message.indexOf('error_type')>=0){e.preventDefault();e.stopImmediatePropagation();return false;}}catch(x){}
+},true);
+window.addEventListener('unhandledrejection',function(e){
+  try{
+    var r=e.reason;
+    var msg=r?(r.message||String(r)):'';
+    if(msg.indexOf('error_type')>=0){e.preventDefault();e.stopImmediatePropagation();return false;}
+  }catch(x){}
+},true);
 window.onerror=function(msg,src,line,col,err){
-if(msg&&msg.indexOf("error_type")>=0)return true;
+  if(msg&&msg.indexOf('error_type')>=0)return true;
   dbg('JS ERROR: '+msg+' (line '+line+')');
   return false;
 };
 window.onunhandledrejection=function(e){
-  dbg('PROMISE ERROR: '+(e.reason?e.reason.toString():'unknown'));
+  try{
+    var r=e.reason;
+    var msg=r?(r.message||String(r)):'';
+    if(msg.indexOf('error_type')>=0){e.preventDefault();return;}
+    dbg('PROMISE ERROR: '+msg);
+  }catch(x){dbg('PROMISE ERROR: unknown');}
 };
 
 function t(k){return(I18N[lang]||I18N.en)[k]||k;}
@@ -146,20 +165,25 @@ function stop(){
   setTimeout(function(){stopping=false;stopCooldown=true;setTimeout(function(){stopCooldown=false;},1500);},800);
 }
 
+function releaseMic(langCode){
+  var s=elMicStreams[langCode];
+  if(s){try{s.getTracks().forEach(function(tr){tr.stop();});}catch(e){}delete elMicStreams[langCode];}
+}
+
 function startOneLang(langCode){
   if(!EL){dbg('ERROR: EL SDK not loaded');return;}
   var aid=AGENTS.elevenlabs[langCode]||AGENTS.elevenlabs.en;
   dbg('startOneLang: lang='+langCode+' agent='+aid);
 
-  // Pre-request mic permission (ElevenLabs SDK handles actual streaming internally via WebRTC)
-  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-    dbg('Mic pre-granted. Stopping temp stream, letting SDK handle mic via WebRTC...');
-    // Stop this temp stream - SDK will open its own via WebRTC
-    stream.getTracks().forEach(function(t){t.stop();});
+  // KEY FIX: get mic stream and KEEP IT ALIVE, pass as inputAudioStream
+  // Never stop it before startSession - that was causing the disconnect
+  navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(stream){
+    dbg('Mic stream live. Starting ElevenLabs session...');
+    elMicStreams[langCode]=stream;
 
     EL.startSession({
       agentId: aid,
-      connectionType: 'webrtc',
+      inputAudioStream: stream,
       onConnect: function(){
         dbg('CONNECTED!');
         if(stopping||!on)return;
@@ -169,6 +193,7 @@ function startOneLang(langCode){
       },
       onDisconnect: function(){
         dbg('DISCONNECTED');
+        releaseMic(langCode);
         delete elConvs[langCode];
         if(!stopping&&Object.keys(elConvs).length===0){
           on=false;
@@ -194,80 +219,46 @@ function startOneLang(langCode){
         ss(t('er'),'er');
       }
     }).then(function(conv){
-      dbg('startSession OK - conv established');
+      dbg('startSession OK');
       elConvs[langCode]=conv;
     }).catch(function(err){
-      dbg('startSession REJECTED: '+(err?err.toString():'unknown'));
+      dbg('startSession FAILED: '+(err?err.toString():'unknown'));
+      releaseMic(langCode);
+      on=false;
       document.getElementById('orb').className='orb er';
       ss(t('er'),'er');
     });
   }).catch(function(micErr){
-    dbg('Mic DENIED: '+micErr+' - trying without pre-grant');
-    // Try directly without getUserMedia pre-grant
-    EL.startSession({
-      agentId: aid,
-      connectionType: 'webrtc',
-      onConnect: function(){
-        dbg('CONNECTED (no pre-grant)!');
-        if(stopping||!on)return;
-        document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
-        document.getElementById('orb').className='orb on';
-        ss(t('listening'),'on',t('listeningHint'));
-      },
-      onDisconnect: function(){
-        dbg('DISCONNECTED (no pre-grant)');
-        delete elConvs[langCode];
-        if(!stopping&&Object.keys(elConvs).length===0){
-          on=false;
-          document.getElementById('orb').className='orb';
-          document.getElementById('ic').textContent='\u{1F33F}';
-          ss(t('idle'),'',t('idleHint'));
-        }
-      },
-      onModeChange: function(m){
-        if(stopping||!on)return;
-        if(m.mode==='speaking'){
-          document.getElementById('orb').className='orb sp';
-          ss(t('speaking'),'sp');
-        }else{
-          document.getElementById('orb').className='orb on';
-          ss(t('listening'),'on',t('listeningHint'));
-        }
-      },
-      onError: function(e){
-        dbg('onError (no pre-grant): '+(e?JSON.stringify(e):'unknown'));
-        document.getElementById('orb').className='orb er';
-        ss(t('er'),'er');
-      }
-    }).then(function(conv){
-      dbg('startSession (no pre-grant) OK');
-      elConvs[langCode]=conv;
-    }).catch(function(err){
-      dbg('startSession (no pre-grant) REJECTED: '+(err?err.toString():'unknown'));
-      document.getElementById('orb').className='orb er';
-      ss(t('er'),'er');
-    });
+    dbg('Mic DENIED: '+micErr);
+    on=false;
+    document.getElementById('orb').className='orb er';
+    ss(t('er'),'er');
   });
 }
 
-function startElevenLabs(){elConvs={};startOneLang(lang);}
+function startElevenLabs(){
+  // Release any old streams first
+  Object.keys(elMicStreams).forEach(function(k){releaseMic(k);});
+  elConvs={};
+  elMicStreams={};
+  startOneLang(lang);
+}
 
 function stopOneLang(langCode){
   var conv=elConvs[langCode];
-  if(!conv)return;
-  delete elConvs[langCode];
-  try{conv.endSession();}catch(e){}
-  setTimeout(function(){
-    try{
-      if(conv._ws){try{conv._ws.close();}catch(e){}}
-      if(conv._pc){try{conv._pc.close();}catch(e){}}
-    }catch(e){}
-  },100);
+  if(conv){
+    delete elConvs[langCode];
+    try{conv.endSession();}catch(e){}
+    setTimeout(function(){
+      try{if(conv._ws)conv._ws.close();}catch(e){}
+      try{if(conv._pc)conv._pc.close();}catch(e){}
+    },100);
+  }
+  releaseMic(langCode);
 }
 
 function stopElevenLabs(){
-  var keys=Object.keys(elConvs);
-  keys.forEach(function(k){stopOneLang(k);});
+  Object.keys(elConvs).forEach(function(k){stopOneLang(k);});
   elConvs={};
 }
 
@@ -277,17 +268,19 @@ function startHume(){
   getAudioCtx();
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
     dbg('Hume mic OK');
-    var ws=new WebSocket('wss://api.hume.ai/v0/converse/prepare?auth-key=HVq3u5nqTg5eK2sL4mN7pR0vW8xY1zA9bC6dE2fG3hI4jK5lM7nO8pQ9rS0tU1vW2xY3zA4bC5dE6fG7hI4jK9lM0nP1qR2sT3uV4wX5yZ6');
+    var ws=new WebSocket('wss://api.hume.ai/v0/evi/chat?api_key=HVq3u5nqTg5eK2sL4mN7pR0vW8xY1zA9bC6dE2fG3hI4jK5lM7nO8pQ9rS0tU1vW2xY3zA4bC5dE6fG7hI4jK9lM0nP1qR2sT3uV4wX5yZ6&config_id=fdd212af-9c46-4396-806e-dac64d005682');
     ws.onopen=function(){document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';document.getElementById('orb').className='orb on';ss(t('listening'),'on');};
     ws.onmessage=function(e){
-      var ab=new Uint8Array(e.data);
-      pCtx.decodeAudioData(ab,function(buf){
-        var src=pCtx.createBufferSource();src.buffer=buf;
-        src.connect(pCtx.destination);
-        var now=pCtx.currentTime;
-        if(nextT<now-0.3||nextT>now+2.0)nextT=now+0.4;
-        src.start(nextT);nextT+=buf.duration;
-      });
+      try{
+        var ab=new Uint8Array(e.data);
+        pCtx.decodeAudioData(ab.buffer,function(buf){
+          var src=pCtx.createBufferSource();src.buffer=buf;
+          src.connect(pCtx.destination);
+          var now=pCtx.currentTime;
+          if(nextT<now-0.3||nextT>now+2.0)nextT=now+0.4;
+          src.start(nextT);nextT+=buf.duration;
+        });
+      }catch(ex){}
     };
     ws.onerror=function(){ss(t('er'),'er');};
   }).catch(function(err){dbg('Hume mic ERROR: '+err);});
@@ -300,26 +293,25 @@ import('https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/+esm').then(funct
   dbg('SDK loaded. Keys: '+Object.keys(mod).join(','));
   if(mod.Conversation){
     EL=mod.Conversation;
-    dbg('EL=Conversation OK - ready');
-  } else if(mod.default && mod.default.Conversation){
+    dbg('EL=Conversation OK');
+  }else if(mod.default&&mod.default.Conversation){
     EL=mod.default.Conversation;
-    dbg('EL=default.Conversation OK - ready');
-  } else {
+    dbg('EL=default.Conversation OK');
+  }else{
     var found=null;
     Object.keys(mod).forEach(function(k){
       if(mod[k]&&typeof mod[k].startSession==='function')found=mod[k];
     });
-    if(found){EL=found;dbg('EL=found by startSession OK - ready');}
-    else{dbg('ERROR: No Conversation class found. Keys: '+Object.keys(mod).join(','));}
+    if(found){EL=found;dbg('EL found by startSession OK');}
+    else{dbg('ERROR: No Conversation class. Keys: '+Object.keys(mod).join(','));}
   }
 }).catch(function(err){
-  dbg('ESM import failed: '+err);
+  dbg('jsdelivr failed: '+err+' - trying Skypack...');
   import('https://cdn.skypack.dev/@elevenlabs/client@0.15.1').then(function(mod2){
-    dbg('Skypack loaded. Keys: '+Object.keys(mod2).join(','));
     if(mod2.Conversation){EL=mod2.Conversation;dbg('Skypack EL OK');}
     else if(mod2.default&&mod2.default.Conversation){EL=mod2.default.Conversation;dbg('Skypack default EL OK');}
-    else{dbg('Skypack: no Conversation found');}
-  }).catch(function(e2){dbg('Skypack also failed: '+e2);});
+    else{dbg('Skypack: no Conversation class found');}
+  }).catch(function(e2){dbg('Both CDNs failed: '+e2);});
 });
 
 updateBar();
