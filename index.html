@@ -8,7 +8,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CYBERDOCTOR">
-<script src="https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/dist/lib.umd.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;-webkit-tap-highlight-color:transparent}
@@ -49,7 +48,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">v15</div>
+<div class="tag" id="tagline">v16</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -62,6 +61,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <script>
 var pCtx=null,nextT=0,on=false,lang='pl',prov='elevenlabs',stopping=false,stopCooldown=false;
 var elConvs={};
+var EL=null; // will hold ElevenLabs.Conversation after async load
 
 var AGENTS={
   elevenlabs:{
@@ -73,7 +73,7 @@ var AGENTS={
 
 var I18N={
   en:{idle:'Tap the orb to talk',idleHint:'Your AI doctor is ready',listening:'Listening...',listeningHint:'Say anything about your health',speaking:'Speaking...',er:'Error'},
-  pl:{idle:'Dotknij orba, aby porozmawia�',idleHint:'Tw�j lekarz AI jest gotowy',listening:'S�ucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'M�wi)...',er:'BŅąd'},
+  pl:{idle:'Dotknij orba, aby porozmawiać',idleHint:'Twój lekarz AI jest gotowy',listening:'Słucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'Mówię...',er:'Błąd'},
   sv:{idle:'Tryck på orben för att prata',idleHint:'Din AI-läkare är Redo',listening:'Lyssnar...',listeningHint:'Säg vad som helst om din hälsa',speaking:'Talar...',er:'Fel'}
 };
 
@@ -127,7 +127,6 @@ function start(){
   if(stopping||stopCooldown)return;
   getAudioCtx();
   on=true;
-  dbg('SDK check: ElevenLabs='+typeof ElevenLabs+' Conversation='+typeof(ElevenLabs&&ElevenLabs.Conversation));
   if(prov==='hume')startHume();
   else if(prov==='retell')startRetell();
   else startElevenLabs();
@@ -146,9 +145,10 @@ function stop(){
 }
 
 function startOneLang(langCode){
+  if(!EL){dbg('ERROR: ElevenLabs SDK not loaded yet');return;}
   var aid=AGENTS.elevenlabs[langCode]||AGENTS.elevenlabs.en;
   dbg('startOneLang: lang='+langCode+' agentId='+aid);
-  ElevenLabs.Conversation.startSession({
+  EL.startSession({
     agentId:aid,
     onConnect:function(){
       dbg('CONNECTED!');
@@ -211,7 +211,7 @@ function stopOneLang(langCode){
 
 function stopElevenLabs(){
   var keys=Object.keys(elConvs);
-  keys.forEach(function(k){stopOneLang(k);});
+  keys.forEach(function(k){stopOneLank(k);});
   elConvs={};
 }
 
@@ -238,11 +238,45 @@ function startHume(){
 }
 function stopHume(){}
 
+// Load ElevenLabs SDK via dynamic ESM import
+dbg('Loading ElevenLabs SDK via ESM...');
+import('https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/+esm').then(function(mod){
+  dbg('ESM loaded. Keys: '+Object.keys(mod).join(','));
+  // The Conversation class should be exported
+  if(mod.Conversation){
+    EL=mod.Conversation;
+    dbg('EL=Conversation OK');
+  } else if(mod.default && mod.default.Conversation){
+    EL=mod.default.Conversation;
+    dbg('EL=default.Conversation OK');
+  } else if(mod.ElevenLabsClient){
+    EL=mod.ElevenLabsClient;
+    dbg('EL=ElevenLabsClient OK');
+  } else {
+    // Try to find anything that has startSession
+    var found=null;
+    Object.keys(mod).forEach(function(k){
+      if(mod[k]&&typeof mod[k].startSession==='function')found=mod[k];
+    });
+    if(found){EL=found;dbg('EL=found by startSession OK');}
+    else{dbg('ERROR: Cannot find Conversation in module. Keys: '+Object.keys(mod).join(','));}
+  }
+}).catch(function(err){
+  dbg('ESM import failed: '+err);
+  dbg('Trying fallback CDN...');
+  // Fallback: try skypack
+  import('https://cdn.skypack.dev/@elevenlabs/client@0.15.1').then(function(mod2){
+    dbg('Skypack loaded. Keys: '+Object.keys(mod2).join(','));
+    if(mod2.Conversation){EL=mod2.Conversation;dbg('Skypack EL OK');}
+    else if(mod2.default&&mod2.default.Conversation){EL=mod2.default.Conversation;dbg('Skypack default EL OK');}
+    else{dbg('Skypack: no Conversation found');}
+  }).catch(function(e2){dbg('Skypack also failed: '+e2);});
+});
+
 var orb=document.getElementById('orb');
 var ic=document.getElementById('ic');
 updateBar();
 ss(t('idle'),'',t('idleHint'));
-dbg('SDK loaded: ElevenLabs='+typeof ElevenLabs);
 </script>
 </body>
 </html>
