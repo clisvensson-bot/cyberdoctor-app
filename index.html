@@ -48,7 +48,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">v16b</div>
+<div class="tag" id="tagline">v17</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -62,7 +62,6 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 var pCtx=null,nextT=0,on=false,lang='pl',prov='elevenlabs',stopping=false,stopCooldown=false;
 var elConvs={};
 var EL=null;
-var micStream=null;
 
 var AGENTS={
   elevenlabs:{
@@ -118,8 +117,8 @@ function updateBar(){
 }
 
 function go(){
-  dbg('go() tapped. on='+on+' stopping='+stopping+' cooldown='+stopCooldown+' prov='+prov+' lang='+lang);
-  if(stopping||stopCooldown){dbg('BLOCKED by stopping/cooldown');return;}
+  dbg('go() on='+on+' stopping='+stopping+' cooldown='+stopCooldown+' prov='+prov+' lang='+lang);
+  if(stopping||stopCooldown){dbg('BLOCKED');return;}
   if(on){stop();}else{start();}
 }
 
@@ -146,25 +145,27 @@ function stop(){
 }
 
 function startOneLang(langCode){
-  if(!EL){dbg('ERROR: ElevenLabs SDK not loaded yet');return;}
+  if(!EL){dbg('ERROR: EL SDK not loaded');return;}
   var aid=AGENTS.elevenlabs[langCode]||AGENTS.elevenlabs.en;
-  dbg('startOneLang: lang='+langCode+' agentId='+aid);
+  dbg('startOneLang: lang='+langCode+' agent='+aid);
 
-  // Request mic first, then start session with the stream
+  // Pre-request mic permission (ElevenLabs SDK handles actual streaming internally via WebRTC)
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-    dbg('Mic granted OK');
-    micStream=stream;
-    var opts={
-      agentId:aid,
-      inputAudioStream:stream,
-      onConnect:function(){
+    dbg('Mic pre-granted. Stopping temp stream, letting SDK handle mic via WebRTC...');
+    // Stop this temp stream - SDK will open its own via WebRTC
+    stream.getTracks().forEach(function(t){t.stop();});
+
+    EL.startSession({
+      agentId: aid,
+      connectionType: 'webrtc',
+      onConnect: function(){
         dbg('CONNECTED!');
         if(stopping||!on)return;
         document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
         document.getElementById('orb').className='orb on';
         ss(t('listening'),'on',t('listeningHint'));
       },
-      onDisconnect:function(){
+      onDisconnect: function(){
         dbg('DISCONNECTED');
         delete elConvs[langCode];
         if(!stopping&&Object.keys(elConvs).length===0){
@@ -174,7 +175,7 @@ function startOneLang(langCode){
           ss(t('idle'),'',t('idleHint'));
         }
       },
-      onModeChange:function(m){
+      onModeChange: function(m){
         dbg('mode: '+m.mode);
         if(stopping||!on)return;
         if(m.mode==='speaking'){
@@ -185,14 +186,13 @@ function startOneLang(langCode){
           ss(t('listening'),'on',t('listeningHint'));
         }
       },
-      onError:function(e){
+      onError: function(e){
         dbg('onError: '+(e?JSON.stringify(e):'unknown'));
         document.getElementById('orb').className='orb er';
         ss(t('er'),'er');
       }
-    };
-    EL.startSession(opts).then(function(conv){
-      dbg('startSession resolved OK');
+    }).then(function(conv){
+      dbg('startSession OK - conv established');
       elConvs[langCode]=conv;
     }).catch(function(err){
       dbg('startSession REJECTED: '+(err?err.toString():'unknown'));
@@ -200,19 +200,20 @@ function startOneLang(langCode){
       ss(t('er'),'er');
     });
   }).catch(function(micErr){
-    dbg('Mic permission DENIED: '+micErr);
-    // Try without explicit stream - some browsers handle it internally
-    var opts={
-      agentId:aid,
-      onConnect:function(){
-        dbg('CONNECTED (no-mic-stream)!');
+    dbg('Mic DENIED: '+micErr+' - trying without pre-grant');
+    // Try directly without getUserMedia pre-grant
+    EL.startSession({
+      agentId: aid,
+      connectionType: 'webrtc',
+      onConnect: function(){
+        dbg('CONNECTED (no pre-grant)!');
         if(stopping||!on)return;
         document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
         document.getElementById('orb').className='orb on';
         ss(t('listening'),'on',t('listeningHint'));
       },
-      onDisconnect:function(){
-        dbg('DISCONNECTED (no-mic-stream)');
+      onDisconnect: function(){
+        dbg('DISCONNECTED (no pre-grant)');
         delete elConvs[langCode];
         if(!stopping&&Object.keys(elConvs).length===0){
           on=false;
@@ -221,7 +222,7 @@ function startOneLang(langCode){
           ss(t('idle'),'',t('idleHint'));
         }
       },
-      onModeChange:function(m){
+      onModeChange: function(m){
         if(stopping||!on)return;
         if(m.mode==='speaking'){
           document.getElementById('orb').className='orb sp';
@@ -231,17 +232,16 @@ function startOneLang(langCode){
           ss(t('listening'),'on',t('listeningHint'));
         }
       },
-      onError:function(e){
-        dbg('onError (no-mic): '+(e?JSON.stringify(e):'unknown'));
+      onError: function(e){
+        dbg('onError (no pre-grant): '+(e?JSON.stringify(e):'unknown'));
         document.getElementById('orb').className='orb er';
         ss(t('er'),'er');
       }
-    };
-    EL.startSession(opts).then(function(conv){
-      dbg('startSession (no-mic) OK');
+    }).then(function(conv){
+      dbg('startSession (no pre-grant) OK');
       elConvs[langCode]=conv;
     }).catch(function(err){
-      dbg('startSession (no-mic) REJECTED: '+(err?err.toString():'unknown'));
+      dbg('startSession (no pre-grant) REJECTED: '+(err?err.toString():'unknown'));
       document.getElementById('orb').className='orb er';
       ss(t('er'),'er');
     });
@@ -255,23 +255,17 @@ function stopOneLang(langCode){
   if(!conv)return;
   delete elConvs[langCode];
   try{conv.endSession();}catch(e){}
-  // Stop mic stream tracks
-  if(micStream){
-    try{micStream.getTracks().forEach(function(t){t.stop();});}catch(e){}
-    micStream=null;
-  }
   setTimeout(function(){
     try{
       if(conv._ws){try{conv._ws.close();}catch(e){}}
       if(conv._pc){try{conv._pc.close();}catch(e){}}
-      if(conv._pc&&conv._pc.getSenders){conv._pc.getSenders().forEach(function(s){try{if(s.track)s.track.stop();}catch(e){}});}
     }catch(e){}
   },100);
 }
 
 function stopElevenLabs(){
   var keys=Object.keys(elConvs);
-  keys.forEach(function(k){stopOneLank(k);});
+  keys.forEach(function(k){stopOneLang(k);});
   elConvs={};
 }
 
@@ -299,29 +293,24 @@ function startHume(){
 function stopHume(){}
 
 // Load ElevenLabs SDK via dynamic ESM import
-dbg('Loading ElevenLabs SDK via ESM...');
+dbg('Loading ElevenLabs SDK...');
 import('https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/+esm').then(function(mod){
-  dbg('ESM loaded. Keys: '+Object.keys(mod).join(','));
+  dbg('SDK loaded. Keys: '+Object.keys(mod).join(','));
   if(mod.Conversation){
     EL=mod.Conversation;
-    dbg('EL=Conversation OK');
+    dbg('EL=Conversation OK - ready');
   } else if(mod.default && mod.default.Conversation){
     EL=mod.default.Conversation;
-    dbg('EL=default.Conversation OK');
-  } else if(mod.ElevenLabsClient){
-    EL=mod.ElevenLabsClient;
-    dbg('EL=ElevenLabsClient OK');
-  } else {
+    dbg('EL=default.Conversation OK - ready');} else {
     var found=null;
     Object.keys(mod).forEach(function(k){
       if(mod[k]&&typeof mod[k].startSession==='function')found=mod[k];
     });
-    if(found){EL=found;dbg('EL=found by startSession OK');}
-    else{dbg('ERROR: Cannot find Conversation in module. Keys: '+Object.keys(mod).join(','));}
+    if(found){EL=found;dbg('EL=found by startSession OK - ready');}
+    else{dbg('ERROR: No Conversation class found. Keys: '+Object.keys(mod).join(','));}
   }
 }).catch(function(err){
   dbg('ESM import failed: '+err);
-  dbg('Trying fallback CDN...');
   import('https://cdn.skypack.dev/@elevenlabs/client@0.15.1').then(function(mod2){
     dbg('Skypack loaded. Keys: '+Object.keys(mod2).join(','));
     if(mod2.Conversation){EL=mod2.Conversation;dbg('Skypack EL OK');}
@@ -330,8 +319,6 @@ import('https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/+esm').then(funct
   }).catch(function(e2){dbg('Skypack also failed: '+e2);});
 });
 
-var orb=document.getElementById('orb');
-var ic=document.getElementById('ic');
 updateBar();
 ss(t('idle'),'',t('idleHint'));
 </script>
