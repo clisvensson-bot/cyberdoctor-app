@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CYBERDOCTOR">
-<script src="https://unpkg.com/@elevenlabs/client@0.15.1/dist/lib.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/dist/lib.umd.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;-webkit-tap-highlight-color:transparent}
@@ -49,7 +49,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">v14b-debug</div>
+<div class="tag" id="tagline">v15</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -73,7 +73,7 @@ var AGENTS={
 
 var I18N={
   en:{idle:'Tap the orb to talk',idleHint:'Your AI doctor is ready',listening:'Listening...',listeningHint:'Say anything about your health',speaking:'Speaking...',er:'Error'},
-  pl:{idle:'Dotknij orba, aby porozmawiać',idleHint:'Twój lekarz AI jest gotowy',listening:'Słucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'Mówię...',er:'Błąd'},
+  pl:{idle:'Dotknij orba, aby porozmawia�',idleHint:'Tw�j lekarz AI jest gotowy',listening:'S�ucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'M�wi)...',er:'BŅąd'},
   sv:{idle:'Tryck på orben för att prata',idleHint:'Din AI-läkare är Redo',listening:'Lyssnar...',listeningHint:'Säg vad som helst om din hälsa',speaking:'Talar...',er:'Fel'}
 };
 
@@ -83,7 +83,6 @@ function dbg(msg){
   el.innerHTML=el.innerHTML+(el.innerHTML?'<br>':'')+msg;
 }
 
-// catch ALL JS errors and show on screen
 window.onerror=function(msg,src,line,col,err){
   dbg('JS ERROR: '+msg+' (line '+line+')');
   return false;
