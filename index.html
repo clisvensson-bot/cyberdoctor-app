@@ -16,25 +16,26 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 .pb{padding:5px 14px;border-radius:20px;border:1px solid #2a2a4a;background:transparent;color:#556;cursor:pointer;font-size:11px;letter-spacing:.05em;transition:all .2s;font-weight:500}
 .pb.act{background:#1a1a3a;border-color:#4fc3f7;color:#4fc3f7}
 .logo{font-size:2.2rem;font-weight:700;letter-spacing:.18em;color:#4fc3f7;margin-bottom:6px;margin-top:80px}
-.tag{font-size:.8rem;color:#455a64;margin-bottom:40px;letter-spacing:.06em;text-transform:uppercase}
-.wrap{position:relative;margin-bottom:30px}
+.tag{font-size:.8rem;color:#455a64;margin-bottom:20px;letter-spacing:.06em;text-transform:uppercase}
+.wrap{position:relative;margin-bottom:20px}
 .ring{position:absolute;border-radius:50%;border:1px solid rgba(79,195,247,.15);animation:rp 3s ease-in-out infinite}
 .r1{inset:-12px}
 .r2{inset:-24px;border-color:rgba(79,195,247,.07);animation-delay:.5s}
 @keyframes rp{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
 .orb{width:140px;height:140px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#162540,#0a0f1a);border:2px solid #1e3a5f;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .35s;position:relative;box-shadow:0 0 25px rgba(79,195,247,.08),inset 0 0 25px rgba(0,0,0,.5);user-select:none;-webkit-user-select:none}
-.orb.active{transform:scale(.93)}
 .orb.on{color:#4fc3f7;box-shadow:0 0 50px rgba(79,195,247,.35);animation:op 2.8s ease-in-out infinite}
 .orb.sp{border-color:#81c784;box-shadow:0 0 50px rgba(129,199,132,.35);animation:op .9s ease-in-out infinite}
 .orb.stopping{border-color:#ef9a9a;box-shadow:0 0 30px rgba(239,154,154,.25);animation:none}
+.orb.er{border-color:#ef9a9a;}
 @keyframes op{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 .icon{font-size:2.8rem}
 .status{font-size:1rem;color:#78909c;margin-bottom:8px;min-height:26px;font-weight:500}
 .status.on{color:#4fc3f7}
 .status.sp{color:#81c784}
 .status.er{color:#ef9a9a}
-.hint{font-size:.75rem;color:#2e4057;min-height:18px;margin-bottom:16px}
-.brand{margin-top:12px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
+.hint{font-size:.75rem;color:#2e4057;min-height:18px;margin-bottom:8px}
+.brand{margin-top:8px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
+#dbg{font-size:.65rem;color:#ef9a9a;background:rgba(239,154,154,.08);border:1px solid rgba(239,154,154,.2);border-radius:8px;padding:8px 12px;margin-top:10px;max-width:340px;word-break:break-all;min-height:20px;text-align:left;display:none}
 @media(max-width:500px){.logo{font-size:2rem;margin-top:60px}.orb{width:120px;height:120px}.pb{font-size:10px;padding:4px 10px}}
 </style>
 </head>
@@ -48,7 +49,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">v14</div>
+<div class="tag" id="tagline">v14b-debug</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -56,6 +57,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 </div>
 <div id="status" class="status"></div>
 <div id="hint" class="hint"></div>
+<div id="dbg"></div>
 <div class="brand">by CLI</div>
 <script>
 var pCtx=null,nextT=0,on=false,lang='pl',prov='elevenlabs',stopping=false,stopCooldown=false;
@@ -71,26 +73,42 @@ var AGENTS={
 
 var I18N={
   en:{idle:'Tap the orb to talk',idleHint:'Your AI doctor is ready',listening:'Listening...',listeningHint:'Say anything about your health',speaking:'Speaking...',er:'Error'},
-  pl:{idle:'Dotknij orba, aby porozmawiać',idleHint:'Twój lekarz AI jest gotowy',listening:'Słucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'Mówię...',er:'BŅąd'},
+  pl:{idle:'Dotknij orba, aby porozmawiać',idleHint:'Twój lekarz AI jest gotowy',listening:'Słucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'Mówię...',er:'Błąd'},
   sv:{idle:'Tryck på orben för att prata',idleHint:'Din AI-läkare är Redo',listening:'Lyssnar...',listeningHint:'Säg vad som helst om din hälsa',speaking:'Talar...',er:'Fel'}
 };
 
+function dbg(msg){
+  var el=document.getElementById('dbg');
+  el.style.display='block';
+  el.innerHTML=el.innerHTML+(el.innerHTML?'<br>':'')+msg;
+}
+
+// catch ALL JS errors and show on screen
+window.onerror=function(msg,src,line,col,err){
+  dbg('JS ERROR: '+msg+' (line '+line+')');
+  return false;
+};
+window.onunhandledrejection=function(e){
+  dbg('PROMISE ERROR: '+(e.reason?e.reason.toString():'unknown'));
+};
+
 function t(k){return(I18N[lang]||I18N.en)[k]||k;}
-function ss(s1,s2,h){document.getElementById('status').innerHTML=s1;document.getElementById('orb').className='orb'+(s2?' '+s2:'');document.getElementById('hint').innerHTML=h||'';}
-
-function getAudioCtx(){if(!pCtx){pCtx=new(window.AudioContext||window.webkitAudioContext)();nextT=pCtx.currentTime;}}
-
-function setP(p){
-  if(on)stop();
-  prov=p;
-  updateBar();
+function ss(s1,s2,h){
+  document.getElementById('status').innerHTML=s1;
+  document.getElementById('orb').className='orb'+(s2?' '+s2:'');
+  document.getElementById('hint').innerHTML=h||'';
 }
-function setL(l){
-  if(on)stop();
-  lang=l;
-  updateBar();
-  ss(t('idle'),'',t('idleHint'));
+
+function getAudioCtx(){
+  if(!pCtx){
+    pCtx=new(window.AudioContext||window.webkitAudioContext)();
+    nextT=pCtx.currentTime;
+  }
 }
+
+function setP(p){if(on)stop();prov=p;updateBar();}
+function setL(l){if(on)stop();lang=l;updateBar();ss(t('idle'),'',t('idleHint'));}
+
 function updateBar(){
   ['el','hume','re'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
   ['en','pl','sv'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
@@ -100,14 +118,17 @@ function updateBar(){
 }
 
 function go(){
-  if(stopping||stopCooldown)return;
+  dbg('go() tapped. on='+on+' stopping='+stopping+' cooldown='+stopCooldown+' prov='+prov+' lang='+lang);
+  if(stopping||stopCooldown){dbg('BLOCKED by stopping/cooldown');return;}
   if(on){stop();}else{start();}
 }
 
 function start(){
+  dbg('start() called');
   if(stopping||stopCooldown)return;
   getAudioCtx();
   on=true;
+  dbg('SDK check: ElevenLabs='+typeof ElevenLabs+' Conversation='+typeof(ElevenLabs&&ElevenLabs.Conversation));
   if(prov==='hume')startHume();
   else if(prov==='retell')startRetell();
   else startElevenLabs();
@@ -115,8 +136,7 @@ function start(){
 
 function stop(){
   if(stopping)return;
-  stopping=true;
-  on=false;
+  stopping=true;on=false;
   document.getElementById('orb').className='orb stopping';
   document.getElementById('ic').textContent='\u{1F33F}';
   ss(t('idle'),'',t('idleHint'));
@@ -128,15 +148,18 @@ function stop(){
 
 function startOneLang(langCode){
   var aid=AGENTS.elevenlabs[langCode]||AGENTS.elevenlabs.en;
+  dbg('startOneLang: lang='+langCode+' agentId='+aid);
   ElevenLabs.Conversation.startSession({
     agentId:aid,
     onConnect:function(){
+      dbg('CONNECTED!');
       if(stopping||!on)return;
       document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
       document.getElementById('orb').className='orb on';
       ss(t('listening'),'on',t('listeningHint'));
     },
     onDisconnect:function(){
+      dbg('DISCONNECTED');
       delete elConvs[langCode];
       if(!stopping&&Object.keys(elConvs).length===0){
         on=false;
@@ -146,6 +169,7 @@ function startOneLang(langCode){
       }
     },
     onModeChange:function(m){
+      dbg('mode: '+m.mode);
       if(stopping||!on)return;
       if(m.mode==='speaking'){
         document.getElementById('orb').className='orb sp';
@@ -155,20 +179,22 @@ function startOneLang(langCode){
         ss(t('listening'),'on',t('listeningHint'));
       }
     },
-    onError:function(){
+    onError:function(e){
+      dbg('onError: '+(e?JSON.stringify(e):'unknown'));
       document.getElementById('orb').className='orb er';
       ss(t('er'),'er');
     }
-  }).then(function(conv){elConvs[langCode]=conv;}).catch(function(){
+  }).then(function(conv){
+    dbg('startSession resolved OK');
+    elConvs[langCode]=conv;
+  }).catch(function(err){
+    dbg('startSession REJECTED: '+(err?err.toString():'unknown'));
     document.getElementById('orb').className='orb er';
     ss(t('er'),'er');
   });
 }
 
-function startElevenLabs(){
-  elConvs={};
-  startOneLang(lang);
-}
+function startElevenLabs(){elConvs={};startOneLang(lang);}
 
 function stopOneLang(langCode){
   var conv=elConvs[langCode];
@@ -192,11 +218,11 @@ function stopElevenLabs(){
 
 function startRetell(){ss(t('listening'),'on',t('listeningHint'));}
 function stopRetell(){}
-
 function startHume(){
   getAudioCtx();
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-    var ws=new WebSocket('wss://api.hume.ai/v0/eavesdrop?auth-key=HVq3u5nqTg5eK2sL4mN7pR0vW8xY1zA9bC6dE2fG3hI4jK5lM7nO8pQ9rS0tU1vW2xY3zA4bC5dE6fG7hI4jK9lM0nP1qR2sT3uV4wX5yZ6');
+    dbg('Hume mic OK');
+    var ws=new WebSocket('wss://api.hume.ai/v0/converse/prepare?auth-key=HVq3u5nqTg5eK2sL4mN7pR0vW8xY1zA9bC6dE2fG3hI4jK5lM7nO8pQ9rS0tU1vW2xY3zA4bC5dE6fG7hI4jK9lM0nP1qR2sT3uV4wX5yZ6');
     ws.onopen=function(){document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';document.getElementById('orb').className='orb on';ss(t('listening'),'on');};
     ws.onmessage=function(e){
       var ab=new Uint8Array(e.data);
@@ -209,7 +235,7 @@ function startHume(){
       });
     };
     ws.onerror=function(){ss(t('er'),'er');};
-  });
+  }).catch(function(err){dbg('Hume mic ERROR: '+err);});
 }
 function stopHume(){}
 
@@ -217,6 +243,7 @@ var orb=document.getElementById('orb');
 var ic=document.getElementById('ic');
 updateBar();
 ss(t('idle'),'',t('idleHint'));
+dbg('SDK loaded: ElevenLabs='+typeof ElevenLabs);
 </script>
 </body>
 </html>
