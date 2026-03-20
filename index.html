@@ -48,7 +48,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag">v26</div>
+<div class="tag">v27</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -140,49 +140,41 @@ function startEL(){
   }
   var aid=AGENTS.elevenlabs[lang]||AGENTS.elevenlabs.en;
   dbgLog('startEL lang='+lang+' agent='+aid.slice(-8));
-  navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(stream){
-    dbgLog('mic OK, starting session');
-    var conv=null;
-    window.EL.startSession({
-      agentId: aid,
-      inputAudioStream: stream,
-      onConnect: function(){
-        dbgLog('CONNECTED');
-        if(!on||stopping){try{if(conv)conv.endSession();}catch(e){}return;}
-        ss(t('listening'),'on',t('listeningHint'));
-        document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
-      },
-      onDisconnect: function(){
-        dbgLog('DISCONNECTED');
-        try{stream.getTracks().forEach(function(tr){tr.stop();});}catch(e){}
-        elConv=null;conv=null;
-        if(!stopping){on=false;document.getElementById('ic').textContent='\uD83C\uDF33';ss(t('idle'),'',t('idleHint'));}
-      },
-      onModeChange: function(m){
-        dbgLog('mode:'+m.mode);
-        if(!on||stopping)return;
-        if(m.mode==='speaking'){ss(t('speaking'),'sp');document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';}
-        else{ss(t('listening'),'on',t('listeningHint'));}
-      },
-      onError: function(e){
-        var msg=e?JSON.stringify(e):'?';
-        dbgLog('ERR:'+msg.slice(0,120));
-        if(msg.indexOf('error_type')>=0){return;}
-        ss(t('er'),'er');
-      }
-    }).then(function(c){
-      elConv=c;conv=c;
-      dbgLog('session started');
-    }).catch(function(err){
-      dbgLog('session FAIL:'+(err?err.toString().slice(0,80):'?'));
-      try{stream.getTracks().forEach(function(tr){tr.stop();});}catch(e){}
-      on=false;ss(t('er'),'er');
-    });
+  // SDK handles mic internally - no inputAudioStream
+  window.EL.startSession({
+    agentId: aid,
+    onConnect: function(){
+      dbgLog('CONNECTED');
+      if(!on||stopping)return;
+      ss(t('listening'),'on',t('listeningHint'));
+      document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
+    },
+    onDisconnect: function(){
+      dbgLog('DISCONNECTED');
+      elConv=null;
+      if(!stopping){on=false;document.getElementById('ic').textContent='\uD83C\uDF33';ss(t('idle'),'',t('idleHint'));}
+    },
+    onModeChange: function(m){
+      dbgLog('mode:'+m.mode);
+      if(!on||stopping)return;
+      if(m.mode==='speaking'){ss(t('speaking'),'sp');document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';}
+      else{ss(t('listening'),'on',t('listeningHint'));}
+    },
+    onError: function(e){
+      var msg=e?JSON.stringify(e):'?';
+      dbgLog('ERR:'+msg.slice(0,120));
+      if(msg.indexOf('error_type')>=0){return;}
+      ss(t('er'),'er');
+    }
+  }).then(function(c){
+    elConv=c;
+    dbgLog('session started OK');
   }).catch(function(err){
-    dbgLog('mic DENIED:'+err);
+    dbgLog('session FAIL:'+(err?err.toString().slice(0,80):'?'));
     on=false;ss(t('er'),'er');
   });
 }
+
 function stopEL(){
   var c=elConv;elConv=null;
   if(c){
