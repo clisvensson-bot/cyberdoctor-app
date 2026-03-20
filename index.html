@@ -48,7 +48,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">v24</div>
+<div class="tag" id="tagline">v25</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -73,15 +73,32 @@ var AGENTS={
   }
 };
 
+// Patch agents to prevent auto-disconnect:
+// - turn_timeout: 30s (wait 30s for user to speak after agent finishes)
+// - silence_end_call_timeout: -1 (disable silence-based hang-up)
+// - max_duration_seconds: 600 (10 min max call)
 function patchAgents(){
   var ids=[AGENTS.elevenlabs.en,AGENTS.elevenlabs.pl,AGENTS.elevenlabs.sv];
+  var payload={
+    conversation_config:{
+      turn:{
+        mode:'turn',
+        turn_timeout:30
+      }
+    },
+    call_limits:{
+      agent_silence_end_call_timeout:-1,
+      user_silence_end_call_timeout:-1,
+      max_duration_seconds:600
+    }
+  };
   ids.forEach(function(aid){
     fetch('https://api.elevenlabs.io/v1/convai/agents/'+aid,{
       method:'PATCH',
       headers:{'xi-api-key':EL_API_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({conversation_config:{turn:{mode:'turn',turn_timeout:30}}})
+      body:JSON.stringify(payload)
     }).then(function(r){return r.json();}).then(function(d){
-      dbgLog('patched:'+aid.slice(-8)+' ok='+(d.agent_id?'Y':'N'));
+      dbgLog('patch '+aid.slice(-8)+':'+(d.agent_id?'OK':'ERR '+JSON.stringify(d).slice(0,80)));
     }).catch(function(e){dbgLog('patch err:'+e);});
   });
 }
@@ -145,7 +162,7 @@ function stop(){
 }
 
 function startEL(){
-  if(!window.EL){
+  if('window.EL){
     dbgLog('SDK not ready - tap again in a moment');
     on=false;
     ss(t('er'),'er');
@@ -227,7 +244,7 @@ ss(t('idle'),'',t('idleHint'));
 </script>
 
 <script type="module">
-// Load ElevenLabs SDK with multiple CDN fallbacks
+// Load ElevenLabs SDK with multiple CDN fallbacks, then patch agents
 async function loadEL(){
   var cdns=[
     'https://cdn.jsdelivr.net/npm/@elevenlabs/client@latest/+esm',
@@ -238,25 +255,21 @@ async function loadEL(){
   for(var i=0;i<cdns.length;i++){
     try{
       var mod=await import(cdns[i]);
-      // Detect Conversation export: named, or nested under default
       var C=mod.Conversation
         ||(mod.default&&mod.default.Conversation)
         ||(mod.default&&typeof mod.default.startSession==='function'?mod.default:null);
       if(C){
         window.EL=C;
         document.getElementById('dbg').style.display='none';
-        window.dbgLog('SDK OK: '+cdns[i].split('/npm/')[1]||cdns[i]);
         window.ss(window.t('idle'),'',window.t('idleHint'));
         patchAgents();
         return;
-      } else {
-        window.dbgLog('CDN '+i+': no Conversation found. Keys='+Object.keys(mod).slice(0,6).join(','));
       }
     }catch(e){
-      window.dbgLog('CDN '+i+' error: '+String(e).slice(0,80));
+      window.dbgLog('CDN '+i+' err:'+String(e).slice(0,60));
     }
   }
-  window.dbgLog('ERROR: All CDNs failed. ElevenLabs unavailable.');
+  window.dbgLog('ERROR: All CDNs failed.');
 }
 loadEL();
 </script>
