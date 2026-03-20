@@ -34,7 +34,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 .status.er{color:#ef9a9a}
 .hint{font-size:.75rem;color:#2e4057;min-height:18px;margin-bottom:8px}
 .brand{margin-top:8px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
-#dbg{font-size:.65rem;color:#ef9a9a;background:rgba(239,154,154,.08);border:1px solid rgba(239,154,154,.2);border-radius:8px;padding:8px 12px;margin-top:10px;max-width:340px;word-break:break-all;min-height:20px;text-align:left;display:none}
+#dbg{font-size:.65rem;color:#ef9a9a;background:rgba(239,154,154,.08);border:1px solid rgba(239,154,154,.2);border-radius:8px;padding:8px 12px;margin-top:10px;max-width:360px;word-break:break-all;text-align:left}
 @media(max-width:500px){.logo{font-size:2rem;margin-top:60px}.orb{width:120px;height:120px}.pb{font-size:10px;padding:4px 10px}}
 </style>
 </head>
@@ -48,7 +48,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">v25</div>
+<div class="tag">v26</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -56,14 +56,13 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 </div>
 <div id="status" class="status"></div>
 <div id="hint" class="hint"></div>
-<div id="dbg"></div>
+<div id="dbg">Loading SDK...</div>
 <div class="brand">by CLI</div>
 
 <script>
 var pCtx=null,on=false,lang='pl',prov='elevenlabs',stopping=false,stopCooldown=false;
 var elConv=null;
 window.EL=null;
-var EL_API_KEY='a8e01c062eb7a5004b13f9c5039675aa205b5d3c15a071ee59b4ee23b46a3986';
 
 var AGENTS={
   elevenlabs:{
@@ -73,62 +72,35 @@ var AGENTS={
   }
 };
 
-// Patch agents to prevent auto-disconnect:
-// - turn_timeout: 30s (wait 30s for user to speak after agent finishes)
-// - silence_end_call_timeout: -1 (disable silence-based hang-up)
-// - max_duration_seconds: 600 (10 min max call)
-function patchAgents(){
-  var ids=[AGENTS.elevenlabs.en,AGENTS.elevenlabs.pl,AGENTS.elevenlabs.sv];
-  var payload={
-    conversation_config:{
-      turn:{
-        mode:'turn',
-        turn_timeout:30
-      }
-    },
-    call_limits:{
-      agent_silence_end_call_timeout:-1,
-      user_silence_end_call_timeout:-1,
-      max_duration_seconds:600
-    }
-  };
-  ids.forEach(function(aid){
-    fetch('https://api.elevenlabs.io/v1/convai/agents/'+aid,{
-      method:'PATCH',
-      headers:{'xi-api-key':EL_API_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    }).then(function(r){return r.json();}).then(function(d){
-      dbgLog('patch '+aid.slice(-8)+':'+(d.agent_id?'OK':'ERR '+JSON.stringify(d).slice(0,80)));
-    }).catch(function(e){dbgLog('patch err:'+e);});
-  });
-}
-
 var I18N={
   en:{idle:'Tap to talk to your doctor',idleHint:'AI health assistant ready',loading:'Loading...',listening:'Listening...',listeningHint:'Speak freely about your health',speaking:'Speaking...',er:'Error - tap to retry'},
-  pl:{idle:'Dotknij, by porozmawiać z lekarzem',idleHint:'Asystent zdrowia AI gotowy',loading:'Ladowanie...',listening:'Słuchamy...',listeningHint:'Mów swobodnie o swoim zdrowiu',speaking:'Mówimy...',er:'Błąd - dotknij, spróbować ponownie'},
+  pl:{idle:'Dotknij, by porozmawiać z lekarzem',idleHint:'Asystent zdrowia AI gotowy',loading:'Ładowanie...',listening:'Słuchamy...',listeningHint:'Mów swobodnie o swoim zdrowiu',speaking:'Mówimy...',er:'Błąd - dotknij, spróbować ponownie'},
   sv:{idle:'Tryck för att prata med din läkare',idleHint:'AI hälsoassistent redo',loading:'Laddar...',listening:'Lyssnar...',listeningHint:'Tala fritt om din hälsa',speaking:'Talar...',er:'Fel - tryck för att försöka igen'}
 };
 
-window.dbgLog=function(m){
+function dbgLog(m){
   var e=document.getElementById('dbg');
-  if(e){e.style.display='block';e.innerHTML=e.innerHTML+(e.innerHTML?'<br>':'')+m;}
-};
-window.t=function(k){return(I18N[lang]||I18N.en)[k]||k;};
-window.ss=function(s,cls,h){
+  if(e){e.innerHTML=e.innerHTML+(e.innerHTML?'<br>':'')+m;}
+}
+function t(k){return(I18N[lang]||I18N.en)[k]||k;}
+function ss(s,cls,h){
   var st=document.getElementById('status'),orb=document.getElementById('orb'),hi=document.getElementById('hint');
   st.className='status'+(cls?' '+cls:'');st.innerHTML=s;
   orb.className='orb'+(cls?' '+cls:'');
-  hi.innerHTML=h||'';
-};
-window.updateBar=function(){
+  if(hi)hi.innerHTML=h||'';
+}
+function updateBar(){
   ['el','hume','re'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
   ['en','pl','sv'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
   var pm={'elevenlabs':'el','hume':'hume','retell':'re'};
   if(pm[prov])document.getElementById('bp-'+pm[prov]).classList.add('act');
   document.getElementById('bp-'+lang).classList.add('act');
-};
-
-function getACtx(){if(!pCtx){pCtx=new(window.AudioContext||window.webkitAudioContext)();}if(pCtx.state==='suspended')pCtx.resume();return pCtx;}
+}
+function getACtx(){
+  if(!pCtx){pCtx=new(window.AudioContext||window.webkitAudioContext)();}
+  if(pCtx.state==='suspended')pCtx.resume();
+  return pCtx;
+}
 function setP(p){if(on)stop();prov=p;updateBar();}
 function setL(l){if(on)stop();lang=l;updateBar();ss(t('idle'),'',t('idleHint'));}
 
@@ -136,7 +108,6 @@ function go(){
   if(stopping||stopCooldown){dbgLog('BLOCKED');return;}
   if(on){stop();}else{start();}
 }
-
 function start(){
   if(stopping||stopCooldown)return;
   getACtx();
@@ -147,11 +118,10 @@ function start(){
   else if(prov==='retell')startRetell();
   else startEL();
 }
-
 function stop(){
   if(stopping)return;
   stopping=true;on=false;
-  document.getElementById('ic').textContent='\u{1F33F}';
+  document.getElementById('ic').textContent='\uD83C\uDF33';
   ss(t('idle'),'stopping',t('idleHint'));
   stopEL();
   setTimeout(function(){
@@ -162,30 +132,31 @@ function stop(){
 }
 
 function startEL(){
-  if('window.EL){
-    dbgLog('SDK not ready - tap again in a moment');
+  if(window.EL===null){
+    dbgLog('EL SDK not ready');
     on=false;
     ss(t('er'),'er');
     return;
   }
   var aid=AGENTS.elevenlabs[lang]||AGENTS.elevenlabs.en;
-  dbgLog('startEL lang='+lang+' agent='+aid);
-  navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(tmpStream){
-    dbgLog('Mic granted. Starting session...');
+  dbgLog('startEL lang='+lang+' agent='+aid.slice(-8));
+  navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(stream){
+    dbgLog('mic OK, starting session');
+    var conv=null;
     window.EL.startSession({
       agentId: aid,
-      inputAudioStream: tmpStream,
+      inputAudioStream: stream,
       onConnect: function(){
         dbgLog('CONNECTED');
-        if(!on||stopping)return;
+        if(!on||stopping){try{if(conv)conv.endSession();}catch(e){}return;}
         ss(t('listening'),'on',t('listeningHint'));
         document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
       },
       onDisconnect: function(){
         dbgLog('DISCONNECTED');
-        try{tmpStream.getTracks().forEach(function(tr){tr.stop();});}catch(e){}
-        elConv=null;
-        if(!stopping){on=false;document.getElementById('ic').textContent='\u{1F33F}';ss(t('idle'),'',t('idleHint'));}
+        try{stream.getTracks().forEach(function(tr){tr.stop();});}catch(e){}
+        elConv=null;conv=null;
+        if(!stopping){on=false;document.getElementById('ic').textContent='\uD83C\uDF33';ss(t('idle'),'',t('idleHint'));}
       },
       onModeChange: function(m){
         dbgLog('mode:'+m.mode);
@@ -195,45 +166,35 @@ function startEL(){
       },
       onError: function(e){
         var msg=e?JSON.stringify(e):'?';
-        dbgLog('onError:'+msg);
+        dbgLog('ERR:'+msg.slice(0,120));
         if(msg.indexOf('error_type')>=0){return;}
         ss(t('er'),'er');
       }
-    }).then(function(conv){elConv=conv;dbgLog('session OK');})
-    .catch(function(err){
-      dbgLog('session FAILED:'+(err?err.toString():'?'));
-      try{tmpStream.getTracks().forEach(function(tr){tr.stop();});}catch(e){}
+    }).then(function(c){
+      elConv=c;conv=c;
+      dbgLog('session started');
+    }).catch(function(err){
+      dbgLog('session FAIL:'+(err?err.toString().slice(0,80):'?'));
+      try{stream.getTracks().forEach(function(tr){tr.stop();});}catch(e){}
       on=false;ss(t('er'),'er');
     });
   }).catch(function(err){
-    dbgLog('Mic DENIED:'+err);
+    dbgLog('mic DENIED:'+err);
     on=false;ss(t('er'),'er');
   });
 }
-
 function stopEL(){
   var c=elConv;elConv=null;
-  if(c){try{c.endSession();}catch(e){}
-    setTimeout(function(){try{if(c._ws)c._ws.close();}catch(e){}try{if(c._pc)c._pc.close();}catch(e){}},200);}
+  if(c){
+    try{c.endSession();}catch(e){}
+    setTimeout(function(){try{if(c._ws)c._ws.close();}catch(e){}try{if(c._pc)c._pc.close();}catch(e){}},200);
+  }
 }
 
+function startHume(){dbgLog('Hume: not configured');}
+function stopHume(){}
 function startRetell(){dbgLog('Retell: not configured');}
 function stopRetell(){}
-
-function startHume(){
-  getACtx();
-  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-    dbgLog('Hume mic OK');
-    var ws=new WebSocket('wss://api.hume.ai/v0/evi/chat?api_key=HVq3u5nqTg5eK2sL4mN7pR0vW8xY1zA9bC6dE2fG3hI4jK5lM7nO8pQ9rS0tU1vW2xY3zA4bC5dE6fG7hI4jK9lM0nP1qR2sT3uV4wX5yZ6&config_id=fdd212af-9c46-4396-806e-dac64d005682');
-    var nT=0;
-    ws.onopen=function(){ss(t('listening'),'on');};
-    ws.onmessage=function(e){
-      try{var ab=new Uint8Array(e.data);pCtx.decodeAudioData(ab.buffer,function(buf){var src=pCtx.createBufferSource();src.buffer=buf;src.connect(pCtx.destination);var now=pCtx.currentTime;if(nT<now-0.3||nT>now+2.0)nT=now+0.4;src.start(nT);nT+=buf.duration;});}catch(ex){}
-    };
-    ws.onerror=function(){ss(t('er'),'er');};
-  }).catch(function(err){dbgLog('Hume mic ERROR:'+err);});
-}
-function stopHume(){}
 
 window.addEventListener('unhandledrejection',function(e){
   try{var r=e.reason,m=r?(r.message||String(r)):'';if(m.indexOf('error_type')>=0){e.preventDefault();return;}}catch(x){}
@@ -244,7 +205,6 @@ ss(t('idle'),'',t('idleHint'));
 </script>
 
 <script type="module">
-// Load ElevenLabs SDK with multiple CDN fallbacks, then patch agents
 async function loadEL(){
   var cdns=[
     'https://cdn.jsdelivr.net/npm/@elevenlabs/client@latest/+esm',
@@ -254,25 +214,26 @@ async function loadEL(){
   ];
   for(var i=0;i<cdns.length;i++){
     try{
+      window.dbgLog('CDN '+i+'...');
       var mod=await import(cdns[i]);
       var C=mod.Conversation
         ||(mod.default&&mod.default.Conversation)
         ||(mod.default&&typeof mod.default.startSession==='function'?mod.default:null);
       if(C){
         window.EL=C;
-        document.getElementById('dbg').style.display='none';
+        document.getElementById('dbg').innerHTML='SDK OK (cdn'+i+')';
         window.ss(window.t('idle'),'',window.t('idleHint'));
-        patchAgents();
         return;
+      } else {
+        window.dbgLog('CDN '+i+' no export');
       }
     }catch(e){
-      window.dbgLog('CDN '+i+' err:'+String(e).slice(0,60));
+      window.dbgLog('CDN '+i+' ERR:'+String(e).slice(0,60));
     }
   }
-  window.dbgLog('ERROR: All CDNs failed.');
+  window.dbgLog('ALL CDNs FAILED');
 }
 loadEL();
 </script>
-
 </body>
 </html>
