@@ -22,10 +22,10 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 .r2{inset:-24px;border-color:rgba(79,195,247,.07);animation-delay:.5s}
 @keyframes rp{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
 .orb{width:140px;height:140px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#162540,#0a0f1a);border:2px solid #1e3a5f;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .35s;position:relative;box-shadow:0 0 25px rgba(79,195,247,.08),inset 0 0 25px rgba(0,0,0,.5);user-select:none;-webkit-user-select:none}
-.orb.on{color:#4fc3f7;box-shadow:0 0 50px rgba(79,195,247,.35);animation:op 2.8s ease-in-out infinite}
+.orb.on{border-color:#4fc3f7;box-shadow:0 0 50px rgba(79,195,247,.35);animation:op 2.8s ease-in-out infinite}
 .orb.sp{border-color:#81c784;box-shadow:0 0 50px rgba(129,199,132,.35);animation:op .9s ease-in-out infinite}
 .orb.stopping{border-color:#ef9a9a;box-shadow:0 0 30px rgba(239,154,154,.25);animation:none}
-.orb.er{border-color:#ef9a9a;}
+.orb.er{border-color:#ef9a9a}
 @keyframes op{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 .icon{font-size:2.8rem}
 .status{font-size:1rem;color:#78909c;margin-bottom:8px;min-height:26px;font-weight:500}
@@ -35,7 +35,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 .hint{font-size:.75rem;color:#2e4057;min-height:18px;margin-bottom:8px}
 .brand{margin-top:8px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
 #dbg{font-size:.65rem;color:#ef9a9a;background:rgba(239,154,154,.08);border:1px solid rgba(239,154,154,.2);border-radius:8px;padding:8px 12px;margin-top:10px;max-width:340px;word-break:break-all;min-height:20px;text-align:left;display:block}
-@media(max-width:500px){.logo{font-size:2rem;margin-top:60px}.orb{width:120px;height:120px}.pb{font-size:10px;padding:4px 10px}}
+@media(max-width:500px){.logo{font-size:2rem;margin-top:60px}.orb{width:120px;height:120px}.pb{font-size:10px;padding:4px 10py}}
 </style>
 </head>
 <body>
@@ -48,7 +48,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">v21</div>
+<div class="tag" id="tagline">v22b</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -59,21 +59,9 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div id="dbg">Loading SDK...</div>
 <div class="brand">by CLI</div>
 
-<script type="module">
-// Import ElevenLabs SDK as ES module
-import { Conversation } from 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/+esm';
-
-// Make EL available globally
-window.EL = Conversation;
-window.dbgLog('SDK loaded OK - EL ready');
-window.updateBar();
-window.ss(window.t('idle'), '', window.t('idleHint'));
-</script>
-
 <script>
-// All app logic in regular script (no module needed here)
-var pCtx=null,nextT=0,on=false,lang='pl',prov='elevenlabs',stopping=false,stopCooldown=false;
-var elConvs={};
+var pCtx=null,on=false,lang='pl',prov='elevenlabs',stopping=false,stopCooldown=false;
+var elConv=null;
 window.EL=null;
 
 var AGENTS={
@@ -85,25 +73,20 @@ var AGENTS={
 };
 
 var I18N={
-  en:{idle:'Tap the orb to talk',idleHint:'Your AI doctor is ready',listening:'Listening...',listeningHint:'Say anything about your health',speaking:'Speaking...',er:'Error'},
-  pl:{idle:'Dotknij orba, aby porozmawiać',idleHint:'Twój lekarz AI jest gotowy',listening:'Słucham...',listeningHint:'Powiedz cokolwiek o swoim zdrowiu',speaking:'Mówię...',er:'Błąd'},
-  sv:{idle:'Tryck på orben för att prata',idleHint:'Din AI-läkare är Redo',listening:'Lyssnar...',listeningHint:'Säg vad som helst om din hälsa',speaking:'Talar...',er:'Fel'}
+  en:{idle:'Tap to talk to your doctor',idleHint:'AI health assistant ready',listening:'Listening...',listeningHint:'Speak freely about your health',speaking:'Speaking...',er:'Error - tap to retry'},
+  pl:{idle:'Dotknij, aby porozmawiać z lekarzem',idleHint:'Asystent zdrowia AI gotowy',listening:'Słucham...',listeningHint:'Mów swobodnie o swoim zdrowiu',speaking:'Mówię...',er:'Błąd - dotknij, aby spróbować ponownie'},
+  sv:{idle:'Tryck för att prata med din läkare',idleHint:'AI hälsoassistent redo',listening:'Lyssnar...',listeningHint:'Tala fritt om din hälsa',speaking:'Talar...',er:'Fel - tryck för att försöka igen'}
 };
 
-window.dbgLog = function(msg){
-  var el=document.getElementById('dbg');
-  el.innerHTML=el.innerHTML+(el.innerHTML?'<br>':'')+msg;
+window.dbgLog=function(m){var e=document.getElementById('dbg');if(e)e.innerHTML=e.innerHTML+(e.innerHTML?'<br>':'')+m;};
+window.t=function(k){return(I18N[lang]||I18N.en)[k]||k;};
+window.ss=function(s,cls,h){
+  var st=document.getElementById('status'),orb=document.getElementById('orb'),hi=document.getElementById('hint');
+  st.className='status'+(cls?' '+cls:'');st.innerHTML=s;
+  orb.className='orb'+(cls?' '+cls:'');
+  hi.innerHTML=h||'';
 };
-
-window.t = function(k){return(I18N[lang]||I18N.en)[k]||k;};
-
-window.ss = function(s1,s2,h){
-  document.getElementById('status').innerHTML=s1;
-  document.getElementById('orb').className='orb'+(s2?' '+s2:'');
-  document.getElementById('hint').innerHTML=h||'';
-};
-
-window.updateBar = function(){
+window.updateBar=function(){
   ['el','hume','re'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
   ['en','pl','sv'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
   var pm={'elevenlabs':'el','hume':'hume','retell':'re'};
@@ -111,18 +94,12 @@ window.updateBar = function(){
   document.getElementById('bp-'+lang).classList.add('act');
 };
 
-function getAudioCtx(){
-  if(!pCtx){
-    pCtx=new(window.AudioContext||window.webkitAudioContext)();
-    nextT=pCtx.currentTime;
-  }
-}
-
+function getACtx(){if(!pCtx){pCtx=new(window.AudioContext||window.webkitAudioContext)();}if(pCtx.state==='suspended')pCtx.resume();return pCtx;}
 function setP(p){if(on)stop();prov=p;updateBar();}
 function setL(l){if(on)stop();lang=l;updateBar();ss(t('idle'),'',t('idleHint'));}
 
 function go(){
-  window.dbgLog('go() on='+on+' stopping='+stopping+' prov='+prov+' lang='+lang);
+  window.dbgLog('go() on='+on+' stop='+stopping+' cool='+stopCooldown+' prov='+prov+' lang='+lang);
   if(stopping||stopCooldown){window.dbgLog('BLOCKED');return;}
   if(on){stop();}else{start();}
 }
@@ -130,129 +107,124 @@ function go(){
 function start(){
   window.dbgLog('start()');
   if(stopping||stopCooldown)return;
-  getAudioCtx();
+  getACtx();
   on=true;
+  ss(t('listening'),'on',t('listeningHint'));
+  document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
   if(prov==='hume')startHume();
   else if(prov==='retell')startRetell();
-  else startElevenLabs();
+  else startEL();
 }
 
 function stop(){
   if(stopping)return;
   stopping=true;on=false;
-  document.getElementById('orb').className='orb stopping';
+  window.dbgLog('stop()');
   document.getElementById('ic').textContent='\u{1F33F}';
-  ss(t('idle'),'',t('idleHint'));
-  if(prov==='hume')stopHume();
-  else if(prov==='retell')stopRetell();
-  else stopElevenLabs();
-  setTimeout(function(){stopping=false;stopCooldown=true;setTimeout(function(){stopCooldown=false;},1500);},800);
+  ss(t('idle'),'stopping',t('idleHint'));
+  stopEL();
+  setTimeout(function(){
+    stopping=false;stopCooldown=true;
+    ss(t('idle'),'',t('idleHint'));
+    setTimeout(function(){stopCooldown=false;},1500);
+  },800);
 }
 
-function startElevenLabs(){
-  if(!window.EL){window.dbgLog('ERROR: EL SDK not loaded yet - wait a moment and try again');on=false;ss(t('er'),'er');return;}
+function startEL(){
+  if(!window.EL){window.dbgLog('SDK not ready - wait 2 sec and retry');on=false;ss(t('er'),'er');return;}
   var aid=AGENTS.elevenlabs[lang]||AGENTS.elevenlabs.en;
-  window.dbgLog('startEL: lang='+lang+' agent='+aid);
-
-  // Request mic permission first, then let SDK handle its own stream
-  navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(stream){
-    // Stop temp stream - SDK will open its own via WebRTC
-    stream.getTracks().forEach(function(tr){tr.stop();});
-    window.dbgLog('Mic OK. Calling startSession...');
-
+  window.dbgLog('startEL lang='+lang+' agent='+aid);
+  
+  // Pre-grant mic permission ONLY - do NOT stop stream, let SDK use WebRTC natively
+  navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(tmpStream){
+    // Keep stream alive! Do NOT stop it. Pass to SDK.
+    window.dbgLog('Mic granted. Starting session...');
     window.EL.startSession({
       agentId: aid,
+      inputAudioStream: tmpStream,
       onConnect: function(){
-        window.dbgLog('CONNECTED!');
-        if(stopping||!on)return;
-        document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
-        document.getElementById('orb').className='orb on';
+        window.dbgLog('CONNECTED');
+        if(!on||stopping){return;}
         ss(t('listening'),'on',t('listeningHint'));
+        document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
       },
       onDisconnect: function(){
         window.dbgLog('DISCONNECTED');
-        delete elConvs[lang];
+        // Stop the mic track we opened
+        try{tmpStream.getTracks().forEach(function(tr){tr.stop();});}catch(e){}
+        elConv=null;
         if(!stopping){
           on=false;
-          document.getElementById('orb').className='orb';
           document.getElementById('ic').textContent='\u{1F33F}';
           ss(t('idle'),'',t('idleHint'));
         }
       },
       onModeChange: function(m){
-        window.dbgLog('mode: '+m.mode);
-        if(stopping||!on)return;
-        if(m.mode==='speaking'){
-          document.getElementById('orb').className='orb sp';
-          ss(t('speaking'),'sp');
-        }else{
-          document.getElementById('orb').className='orb on';
-          ss(t('listening'),'on',t('listeningHint'));
-        }
+        window.dbgLog('mode:'+m.mode);
+        if(!on||stopping)return;
+        if(m.mode==='speaking'){ss(t('speaking'),'sp');document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';}
+        else{ss(t('listening'),'on',t('listeningHint'));}
       },
       onError: function(e){
-        window.dbgLog('onError: '+(e?JSON.stringify(e):'unknown'));
-        document.getElementById('orb').className='orb er';
+        var msg=e?JSON.stringify(e):'?';
+        window.dbgLog('onError:'+msg);
+        if(msg.indexOf('error_type')>=0){window.dbgLog('(SDK internal - ignoring)');return;}
         ss(t('er'),'er');
       }
     }).then(function(conv){
-      window.dbgLog('startSession OK');
-      elConvs[lang]=conv;
+      window.dbgLog('session OK');
+      elConv=conv;
     }).catch(function(err){
-      window.dbgLog('startSession FAILED: '+(err?err.toString():'unknown'));
-      on=false;
-      document.getElementById('orb').className='orb er';
-      ss(t('er'),'er');
+      window.dbgLog('session FAILED:'+(err?err.toString():'?'));
+      try{tmpStream.getTracks().forEach(function(tr){tr.stop();});}catch(e){}
+      on=false;ss(t('er'),'er');
     });
-  }).catch(function(micErr){
-    window.dbgLog('Mic DENIED: '+micErr);
-    on=false;
-    document.getElementById('orb').className='orb er';
-    ss(t('er'),'er');
+  }).catch(function(err){
+    window.dbgLog('Mic DENIED:'+err);
+    on=false;ss(t('er'),'er');
   });
 }
 
-function stopElevenLabs(){
-  var conv=elConvs[lang];
-  if(conv){
-    delete elConvs[lang];
-    try{conv.endSession();}catch(e){}
-    setTimeout(function(){
-      try{if(conv._ws)conv._ws.close();}catch(e){}
-      try{if(conv._pc)conv._pc.close();}catch(e){}
-    },100);
+function stopEL(){
+  var c=elConv;elConv=null;
+  if(c){
+    try{c.endSession();}catch(e){}
+    setTimeout(function(){try{if(c._ws)c._ws.close();}catch(e){}try{if(c._pc)c._pc.close();}catch(e){}},200);
   }
 }
 
-function startRetell(){ss(t('listening'),'on',t('listeningHint'));}
+function startRetell(){window.dbgLog('Retell: not configured');}
 function stopRetell(){}
 
 function startHume(){
-  getAudioCtx();
+  getACtx();
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
     window.dbgLog('Hume mic OK');
     var ws=new WebSocket('wss://api.hume.ai/v0/evi/chat?api_key=HVq3u5nqTg5eK2sL4mN7pR0vW8xY1zA9bC6dE2fG3hI4jK5lM7nO8pQ9rS0tU1vW2xY3zA4bC5dE6fG7hI4jK9lM0nP1qR2sT3uV4wX5yZ6&config_id=fdd212af-9c46-4396-806e-dac64d005682');
-    ws.onopen=function(){document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';document.getElementById('orb').className='orb on';ss(t('listening'),'on');};
+    var nT=0;
+    ws.onopen=function(){ss(t('listening'),'on');};
     ws.onmessage=function(e){
-      try{
-        var ab=new Uint8Array(e.data);
-        pCtx.decodeAudioData(ab.buffer,function(buf){
-          var src=pCtx.createBufferSource();src.buffer=buf;
-          src.connect(pCtx.destination);
-          var now=pCtx.currentTime;
-          if(nextT<now-0.3||nextT>now+2.0)nextT=now+0.4;
-          src.start(nextT);nextT+=buf.duration;
-        });
-      }catch(ex){}
+      try{var ab=new Uint8Array(e.data);pCtx.decodeAudioData(ab.buffer,function(buf){var src=pCtx.createBufferSource();src.buffer=buf;src.connect(pCtx.destination);var now=pCtx.currentTime;if(nT<now-0.3||nT>now+2.0)nT=now+0.4;src.start(nT);nT+=buf.duration;});}catch(ex){}
     };
     ws.onerror=function(){ss(t('er'),'er');};
-  }).catch(function(err){window.dbgLog('Hume mic ERROR: '+err);});
+  }).catch(function(err){window.dbgLog('Hume mic ERROR:'+err);});
 }
 function stopHume(){}
 
-// Set initial state
+// Suppress SDK internal errors
+window.addEventListener('unhandledrejection',function(e){
+  try{var r=e.reason,m=r?(r.message||String(r)):'';if(m.indexOf('error_type')>=0){e.preventDefault();return;}}catch(x){}
+},true);
+
 updateBar();
 ss(t('idle'),'',t('idleHint'));
 </script>
+
+<script type="module">
+import { Conversation } from 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/+esm';
+window.EL = Conversation;
+window.dbgLog('SDK loaded OK');
+</script>
+
 </body>
 </html>
