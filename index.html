@@ -48,7 +48,7 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
 </div>
 <div class="logo">CYBERDOCTOR</div>
-<div class="tag" id="tagline">v22b</div>
+<div class="tag" id="tagline">v23</div>
 <div class="wrap">
 <div class="ring r1"></div>
 <div class="ring r2"></div>
@@ -57,12 +57,13 @@ body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-famil
 <div id="status" class="status"></div>
 <div id="hint" class="hint"></div>
 <div id="dbg">Loading SDK...</div>
-<div class="brand">by CLI</div>
+  <div class="brand">by CLI</div>
 
 <script>
 var pCtx=null,on=false,lang='pl',prov='elevenlabs',stopping=false,stopCooldown=false;
 var elConv=null;
 window.EL=null;
+var EL_API_KEY='a8e01c062eb7a5004b13f9c5039675aa205b5d3c15a071ee59b4ee23b46a3986';
 
 var AGENTS={
   elevenlabs:{
@@ -72,16 +73,30 @@ var AGENTS={
   }
 };
 
+// Auto-patch all 3 agents to set turn_timeout=30 seconds
+function patchAgents(){
+  var ids=[AGENTS.elevenlabs.en,AGENTS.elevenlabs.pl,AGENTS.elevenlabs.sv];
+  ids.forEach(function(aid){
+    fetch('https://api.elevenlabs.io/v1/convai/agents/'+aid,{
+      method:'PATCH',
+      headers:{'xi-api-key':EL_API_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({conversation_config:{turn:{mode:'turn',turn_timeout:30}}})
+    }).then(function(r){return r.json();}).then(function(d){
+      window.dbgLog('patched:'+aid.slice(-8)+' ok='+(d.agent_id?'Y':'N err='+JSON.stringify(d).slice(0,60)));
+    }).catch(function(e){window.dbgLog('patch err:'+e);});
+  });
+}
+
 var I18N={
-  en:{idle:'Tap to talk to your doctor',idleHint:'AI health assistant ready',listening:'Listening...',listeningHint:'Speak freely about your health',speaking:'Speaking...',er:'Error - tap to retry'},
-  pl:{idle:'Dotknij, aby porozmawiać z lekarzem',idleHint:'Asystent zdrowia AI gotowy',listening:'Słucham...',listeningHint:'Mów swobodnie o swoim zdrowiu',speaking:'Mówię...',er:'Błąd - dotknij, aby spróbować ponownie'},
-  sv:{idle:'Tryck för att prata med din läkare',idleHint:'AI hälsoassistent redo',listening:'Lyssnar...',listeningHint:'Tala fritt om din hälsa',speaking:'Talar...',er:'Fel - tryck för att försöka igen'}
+  en:{idle:'Tap to talk to your doctor',idleHint:'AI health assistant ready',loading:'Loading...',listening:'Listening...',listeningHint:'Speak freely about your health',speaking:'Speaking...',er:'Error - tap to retry'},
+  pl:{idle:'Dotknij�by porozmawiać z lekarzem',idleHint:'Asystent zdrowia AI gotowy',loading:'Ladowanie...',listening:'Słucham...',listeningHint:'Mów swobodnie o swoim zdrowiu',speaking:'Mówię...',er:'Bąd - dotknij�, spróbować ponownie'},
+  sv:{idle:'Tryck för att prata med din läkare',idleHint:'AI hälsoassistent redo',loading:'Laddar...',listening:'Lyssnar...',listeningHint:'Tala fritt om din hälsa',speaking:'Talar...',er:'Fel - tryck för att försöka igen'}
 };
 
 window.dbgLog=function(m){var e=document.getElementById('dbg');if(e)e.innerHTML=e.innerHTML+(e.innerHTML?'<br>':'')+m;};
 window.t=function(k){return(I18N[lang]||I18N.en)[k]||k;};
 window.ss=function(s,cls,h){
-  var st=document.getElementById('status'),orb=document.getElementById('orb'),hi=document.getElementById('hint');
+  var st=document.getElementById('status'),st=document.getElementById('status'),orb=document.getElementById('orb'),hi=document.getElementById('hint');
   st.className='status'+(cls?' '+cls:'');st.innerHTML=s;
   orb.className='orb'+(cls?' '+cls:'');
   hi.innerHTML=h||'';
@@ -99,13 +114,11 @@ function setP(p){if(on)stop();prov=p;updateBar();}
 function setL(l){if(on)stop();lang=l;updateBar();ss(t('idle'),'',t('idleHint'));}
 
 function go(){
-  window.dbgLog('go() on='+on+' stop='+stopping+' cool='+stopCooldown+' prov='+prov+' lang='+lang);
   if(stopping||stopCooldown){window.dbgLog('BLOCKED');return;}
   if(on){stop();}else{start();}
 }
 
 function start(){
-  window.dbgLog('start()');
   if(stopping||stopCooldown)return;
   getACtx();
   on=true;
@@ -119,7 +132,6 @@ function start(){
 function stop(){
   if(stopping)return;
   stopping=true;on=false;
-  window.dbgLog('stop()');
   document.getElementById('ic').textContent='\u{1F33F}';
   ss(t('idle'),'stopping',t('idleHint'));
   stopEL();
@@ -131,33 +143,25 @@ function stop(){
 }
 
 function startEL(){
-  if(!window.EL){window.dbgLog('SDK not ready - wait 2 sec and retry');on=false;ss(t('er'),'er');return;}
+  if(!window.EL){window.dbgLog('SDK not ready');on=false;sst('er'),'er');return;}
   var aid=AGENTS.elevenlabs[lang]||AGENTS.elevenlabs.en;
-  window.dbgLog('startEL lang='+lang+' agent='+aid);
-  
-  // Pre-grant mic permission ONLY - do NOT stop stream, let SDK use WebRTC natively
+  window.dbgLog('startEL lang='+lang+' agent='+a�d);
   navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(tmpStream){
-    // Keep stream alive! Do NOT stop it. Pass to SDK.
     window.dbgLog('Mic granted. Starting session...');
     window.EL.startSession({
       agentId: aid,
       inputAudioStream: tmpStream,
       onConnect: function(){
         window.dbgLog('CONNECTED');
-        if(!on||stopping){return;}
+        if(!on||stopping)return;
         ss(t('listening'),'on',t('listeningHint'));
         document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
       },
       onDisconnect: function(){
         window.dbgLog('DISCONNECTED');
-        // Stop the mic track we opened
         try{tmpStream.getTracks().forEach(function(tr){tr.stop();});}catch(e){}
         elConv=null;
-        if(!stopping){
-          on=false;
-          document.getElementById('ic').textContent='\u{1F33F}';
-          ss(t('idle'),'',t('idleHint'));
-        }
+        if(!stopping){on=false;document.getElementById('ic').textContent='\u{1F33F}';ss(t('idle'),'',t('idleHint'));}
       },
       onModeChange: function(m){
         window.dbgLog('mode:'+m.mode);
@@ -168,29 +172,25 @@ function startEL(){
       onError: function(e){
         var msg=e?JSON.stringify(e):'?';
         window.dbgLog('onError:'+msg);
-        if(msg.indexOf('error_type')>=0){window.dbgLog('(SDK internal - ignoring)');return;}
+        if(msg.indexOf('error_type')>=0){return;}
         ss(t('er'),'er');
       }
-    }).then(function(conv){
-      window.dbgLog('session OK');
-      elConv=conv;
-    }).catch(function(err){
+    }).then(function(conv){elConv=conv;window.dbgLog('session OK');})
+    .catch(function(err){
       window.dbgLog('session FAILED:'+(err?err.toString():'?'));
       try{tmpStream.getTracks().forEach(function(tr){tr.stop();});}catch(e){}
-      on=false;ss(t('er'),'er');
+      on=false;sst('er'),'er');
     });
   }).catch(function(err){
     window.dbgLog('Mic DENIED:'+err);
-    on=false;ss(t('er'),'er');
+    on=false;sst('er'),'er');
   });
 }
 
 function stopEL(){
   var c=elConv;elConv=null;
-  if(c){
-    try{c.endSession();}catch(e){}
-    setTimeout(function(){try{if(c._ws)c._ws.close();}catch(e){}try{if(c._pc)c._pc.close();}catch(e){}},200);
-  }
+  if(c){try{c.endSession();}catch(e){}
+    setTimeout(function(){try{if(c._ws)c._ws.close();}catch(e){}try{if(c._pc)c._pc.close();}catch(e){}},200);}
 }
 
 function startRetell(){window.dbgLog('Retell: not configured');}
@@ -211,7 +211,6 @@ function startHume(){
 }
 function stopHume(){}
 
-// Suppress SDK internal errors
 window.addEventListener('unhandledrejection',function(e){
   try{var r=e.reason,m=r?(r.message||String(r)):'';if(m.indexOf('error_type')>=0){e.preventDefault();return;}}catch(x){}
 },true);
@@ -224,6 +223,7 @@ ss(t('idle'),'',t('idleHint'));
 import { Conversation } from 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/+esm';
 window.EL = Conversation;
 window.dbgLog('SDK loaded OK');
+patchAgents();
 </script>
 
 </body>
