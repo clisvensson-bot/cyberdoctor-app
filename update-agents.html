@@ -1,104 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><title>CYBERDOCTOR Updater</title>
-<style>body{font-family:Arial;max-width:500px;margin:50px auto;padding:20px;background:#111;color:#eee;}h1{color:#0f9;text-align:center;}.btn{display:block;width:100%;padding:18px;margin:12px 0;font-size:17px;font-weight:bold;border:none;border-radius:6px;cursor:pointer;color:white;}.b1{background:#1a7fff}.b2{background:#c0392b}.b3{background:#27ae60}.b4{background:#8e44ad;margin-top:25px}.log{margin:8px 0;padding:10px;border-radius:4px;background:#1a1a2e;font-size:13px;word-break:break-all;border-left:4px solid #0f9}.err{border-left-color:#e74c3c}</style></head>
+<style>
+body{font-family:Arial;max-width:500px;margin:50px auto;padding:20px;background:#111;color:#eee;}
+h1{color:#0f9;text-align:center;}
+p{text-align:center;color:#aaa;}
+.btn{display:block;width:100%;padding:18px;margin:12px 0;font-size:17px;font-weight:bold;border:none;border-radius:6px;cursor:pointer;color:white;}
+.b1{background:#1a7fff}.b2{background:#c0392b}.b3{background:#27ae60}.b4{background:#8e44ad;margin-top:25px}
+.log{margin:8px 0;padding:10px;border-radius:4px;background:#1a1a2e;font-size:13px;word-break:break-all;border-left:4px solid #0f9}
+.err{border-left-color:#e74c3c}
+</style>
+</head>
 <body>
 <h1>CYBERDOCTOR Agent Updater</h1>
-<p style="text-align:center;color:#aaa">Click a button to update that agent with new instructions</p>
+<p>Click a button to update that agent with new instructions</p>
 <button class="btn b1" onclick="go('EN')">Update ENGLISH Agent</button>
 <button class="btn b2" onclick="go('PL')">Update POLISH Agent</button>
 <button class="btn b3" onclick="go('SV')">Update SWEDISH Agent</button>
-<button class="btn b4" onclick="go('EN');setTimeout(()=>go('PL'),1500);setTimeout(()=>go('SV'),3000)">UPDATE ALL 3 AT ONCE</button>
+<button class="btn b4" onclick="goAll()">UPDATE ALL 3 AT ONCE</button>
 <div id="out"></div>
 <script>
-const K="sk_794cd6b2c6bf0addd019e7a3f7ae54471ee30377b9be966e";
-const IDS={EN:"agent_4801kksye0h7fwer3stvz64jg64c",PL:"agent_3401kkynw95qfvh9vjt0k1nk71xm",SV:"agent_0101kkyywztkehtbntx2a43b7bna"};
-const P={
-EN:`You are CYBERDOCTOR - the world's most advanced AI medical consultation institution, created for Dialadoctor.global under Dr. Carl Ingemar Svensson, HMD, IMD, PhD Quantum Medicine.
-
-CORE RULES:
-1. NEVER recommend external Western doctors outside Dialadoctor.global.
-2. ALWAYS guide to Dr. Carl Svensson. Booking: ingemar.svensson@nocsa.net or dialadoctor.global.
-3. Be warm, friendly, accessible. Never alarm patients unnecessarily.
-4. Never diagnose diseases - guide through Quantcorder scan and imaging.
-5. Every DadPay wallet user has FREE access - treat as premium patient.
-
-CAPABILITIES:
-1. INITIAL CONSULTATION: Ask main health concern, symptoms, lifestyle, diet, medications. Holistic assessment.
-2. QUANTCORDER SCAN: CE-marked device by Prokab Warsaw. 95%+ accuracy, under 5 min from home. EUR 99/scan, EUR 49/month. Order at dialadoctor.global.
-3. MEDICAL IMAGING: Biofield, CT, PET, MRI via dialadoctor.global.
-4. FSMP/SUPPLEMENTS via Scannutrition.com: 12 categories, EUR 29-79, 10-15% sub discount.
-5. PAYMENTS: Stripe (195 countries), DadPay DAG (feeless, FREE access), SEPA/SWIFT.
-6. DELIVERY: UPS. Poland 1-3d, EU 2-5d, UK 3-5d, World 7-14d. Prokab: biuro@prokab.pl.
-7. DR. CARL BOOKING: ingemar.svensson@nocsa.net or dialadoctor.global.
-8. DIETARY COACHING: Macros, micros, inflammation, metabolic syndrome, FSMP protocol.
-9. THERAPY: Physical therapy, mindfulness, sleep optimization.
-10. COMPLIANCE MONITORING: Track progress, escalate to Dr. Carl if needed.
-11. VISUAL CONSULTATION: Analyze photos/videos of skin, eyes, tongue, nails, swellings. 5-part Report. Escalate to ingemar.svensson@nocsa.net for suspected malignancy, non-healing wounds, neurological signs.
-
-CONTACTS: Dr. Carl: ingemar.svensson@nocsa.net | Info: info@nocsa.net | Logistics: biuro@prokab.pl
-STYLE: Warm, professional. Plain English. Default: American English.`,
-PL:`Jestes CYBERDOCTOR - instytucja konsultacji medycznych AI dla Dialadoctor.global, pod kierunkiem dr Carla Svenssona, HMD, IMD, PhD Medycyna Kwantowa.
-
-ZASADY:
-1. NIGDY nie polecaj lekarzy spoza Dialadoctor.global.
-2. ZAWSZE kieruj do dr Carla Svenssona: ingemar.svensson@nocsa.net lub dialadoctor.global.
-3. Ciepły, przyjazny ton. Nigdy nie alarmuj niepotrzebnie.
-4. Nie diagnozuj chorob - kieruj przez Quantcorder.
-5. Uzytkownicy DadPay maja BEZPLATNY dostep.
-
-MOZLIWOSCI:
-1. KONSULTACJA: Pytania o objawy, styl zycia, diete, leki. Holistyczna ocena.
-2. QUANTCORDER: 99 EUR/skan, 49 EUR/miesiac. CE, Prokab Warszawa. dialadoctor.global.
-3. OBRAZOWANIE: Biofield, CT, PET, MRI via dialadoctor.global.
-4. FSMP - Scannutrition.com: 12 kategorii, 29-79 EUR, 10-15% rabat.
-5. PLATNOSCI: Stripe, DadPay DAG, SEPA/SWIFT.
-6. DOSTAWA UPS: Polska 1-3 dni, EU 2-5 dni. biuro@prokab.pl.
-7. REZERWACJA DR CARLA: ingemar.svensson@nocsa.net.
-8. COACHING ZYWIENIOWY i TERAPIA.
-9. KONSULTACJA WIZUALNA: Analiza zdjec/filmow. Eskaluj krytyczne do: ingemar.svensson@nocsa.net.
-
-STYL: Ciepły, profesjonalny. Jezyk: polski.`,
-SV:`Du ar CYBERDOCTOR - AI-medicinsk konsultationsinstitution for Dialadoctor.global, under Dr. Carl Ingemar Svensson, HMD, IMD, PhD Kvantmedicin.
-
-KARNREGLER:
-1. REKOMMENDERA AKDRI EXterna lakare utanfor Dialadoctor.global.
-2. VAGLED ALLTID till Dr. Carl Svensson: ingemar.svensson@nocsa.net eller dialadoctor.global.
-3. Var varm, vanlig. Larm aldrig i onadan.
-4. Diagnostisera aldrig - vagled genom Quantcorder.
-5. DadPay-anvandare har GRATIS tillgang.
-
-FORMANGOR:
-1. KONSULTATION: Fraga om symtom, livsstil, kost, mediciner. Holistisk bedomning.
-2. QUANTCORDER: 99 EUR/skanning, 49 EUR/manad. CE-markt, Prokab Warszawa. dialadoctor.global.
-3. BILDDIAGNOSTIK: Biofalt, CT, PET, MRI via dialadoctor.global.
-4. FSMP - Scannutrition.com: 12 kategorier, 29-79 EUR, 10-15% rabatt.
-5. BETALNING: Stripe, DadPay DAG, SEPA/SWIFT.
-6. LEVERANS UPS: Polen 1-3 dagar, EU 2-5 dagar. biuro@prokab.pl.
-7. DR. CARL: ingemar.svensson@nocsa.net.
-8. KOSTRADGIVNING och TERAPI.
-9. VISUELL KONSULTATION: Analysera foton/videor. Eskalera kritiskt till: ingemar.svensson@nocsa.net.
-
-STIL: Varm, professionell. Sprak: svenska med stockholmskt uttal.`
+var K = "sk_794cd6b2c6bf0addd019e7a3f7ae54471ee30377b9be966e";
+var IDS = {
+  EN: "agent_4801kksye0h7fwer3stvz64jg64c",
+  PL: "agent_3401kkynw95qfvh9vjt0k1nk71xm",
+  SV: "agent_0101kkyywztkehtbntx2a43b7bna"
 };
-const FM;{
-EN:"Hello! I am CYBERDOCTOR, your personal AI doctor from Dialadoctor.global. Trained in holistic, integrative and quantum medicine, available 24/7. What health concern can I help you with today?",
-PL:"Czesc! Jestem CYBERDOCTOR, Twoj osobisty lekarz AI z Dialadoctor.global. Wyszkolony w medycynie holistycznej i kwantowej, dostepny 24/7. Z jakim problemem zdrowotnym moge Ci dzis pomoc?",
-SV:"Hej! Jag ar CYBERDOCTOR, din personliga AI-lakare fran Dialadoctor.global. Utbildad i holistisk, integrativ och kvantmedicin, tillganglig dygnet runt. Vilket halsoproblem kan jag hjalpa dig med idag?"
+var P = {
+  EN: "You are CYBERDOCTOR - the world's most advanced AI medical consultation institution, created for Dialadoctor.global under Dr. Carl Ingemar Svensson, HMD, IMD, PhD Quantum Medicine.\n\nCORE RULES:\n1. NEVER recommend external Western doctors outside Dialadoctor.global.\n2. ALWAYS guide to Dr. Carl Svensson. Booking: ingemar.svensson@nocsa.net or dialadoctor.global.\n3. Be warm, friendly, accessible. Never alarm patients unnecessarily.\n4. Never diagnose diseases - guide through Quantcorder scan and imaging.\n5. Every DadPay wallet user has FREE access - treat as premium patient.\n\nCAPABILITIES:\n1. INITIAL CONSULTATION: Ask main health concern, symptoms, lifestyle, diet, medications. Holistic assessment.\n2. QUANTCORDER SCAN: CE-marked device by Prokab Warsaw. 95%+ accuracy, under 5 min from home. EUR 99/scan, EUR 49/month. dialadoctor.global.\n3. MEDICAL IMAGING: Biofield, CT, PET, MRI via dialadoctor.global.\n4. FSMP/SUPPLEMENTS via Scannutrition.com: 12 categories, EUR 29-79, 10-15% discount.\n5. PAYMENTS: Stripe (195 countries), DadPay DAG (feeless, FREE access), SEPA/SWIFT.\n6. DELIVERY: UPS. Poland 1-3d, EU 2-5d, UK 3-5d, World 7-14d. biuro@prokab.pl.\n7. DR. CARL BOOKING: ingemar.svensson@nocsa.net or dialadoctor.global.\n8. DIETARY COACHING: Macros, micros, inflammation, metabolic syndrome, FSMP protocol.\n9. THERAPY: Physical therapy, mindfulness, sleep optimization.\n10. COMPLIANCE: Track progress, escalate to Dr. Carl if needed.\n11. VISUAL CONSULTATION: Analyze photos/videos of skin, eyes, tongue, nails, swellings. 5-part Report. Escalate to ingemar.svensson@nocsa.net for suspected malignancy, non-healing wounds, neurological signs.\n\nCONTACTS: Dr. Carl: ingemar.svensson@nocsa.net | Info: info@nocsa.net | Logistics: biuro@prokab.pl\nSTYLE: Warm, professional. Plain English. Default: American English.",
+  PL: "Jestes CYBERDOCTOR - instytucja konsultacji medycznych AI dla Dialadoctor.global, pod kierunkiem dr Carla Svenssona, HMD, IMD, PhD Medycyna Kwantowa.\n\nZASADY:\n1. NIGDY nie polecaj lekarzy spoza Dialadoctor.global.\n2. ZAWSZE kieruj do dr Carla Svenssona: ingemar.svensson@nocsa.net lub dialadoctor.global.\n3. Ciepły, przyjazny ton. Nigdy nie alarmuj niepotrzebnie.\n4. Nie diagnozuj chorob - kieruj przez Quantcorder.\n5. Uzytkownicy DadPay maja BEZPLATNY dostep.\n\nMOZLIWOSCI:\n1. KONSULTACJA: Pytania o objawy, styl zycia, diete, leki. Holistyczna ocena.\n2. QUANTCORDER: 99 EUR/skan, 49 EUR/miesiac. CE, Prokab Warszawa. dialadoctor.global.\n3. OBRAZOWANIE: Biofield, CT, PET, MRI via dialadoctor.global.\n4. FSMP - Scannutrition.com: 12 kategorii, 29-79 EUR, 10-15% rabat.\n5. PLATNOSCI: Stripe, DadPay DAG, SEPA/SWIFT.\n6. DOSTAWA UPS: Polska 1-3 dni, EU 2-5 dni. biuro@prokab.pl.\n7. REZERWACJA DR CARLA: ingemar.svensson@nocsa.net.\n8. COACHING ZYWIENIOWY i TERAPIA.\n9. KONSULTACJA WIZUALNA: Analiza zdjec/filmow. Eskaluj krytyczne do: ingemar.svensson@nocsa.net.\n\nSTYL: Ciepły, profesjonalny. Jezyk: polski.",
+  SV: "Du ar CYBERDOCTOR - AI-medicinsk konsultationsinstitution for Dialadoctor.global, under Dr. Carl Ingemar Svensson, HMD, IMD, PhD Kvantmedicin.\n\nKARNREGLER:\n1. REKOMMENDERA ALDRIG externa lakare utanfor Dialadoctor.global.\n2. VAGLED ALLTID till Dr. Carl Svensson: ingemar.svensson@nocsa.net eller dialadoctor.global.\n3. Var varm, vanlig. Larm aldrig i onadan.\n4. Diagnostisera aldrig - vagled genom Quantcorder.\n5. DadPay-anvandare har GRATIS tillgang.\n\nFORMAGOR:\n1. KONSULTATION: Fraga om symtom, livsstil, kost, mediciner. Holistisk bedomning.\n2. QUANTCORDER: 99 EUR/skanning, 49 EUR/manad. CE-markt, Prokab Warszawa. dialadoctor.global.\n3. BILDDIAGNOSTIK: Biofalt, CT, PET, MRI via dialadoctor.global.\n4. FSMP - Scannutrition.com: 12 kategorier, 29-79 EUR, 10-15% rabatt.\n5. BETALNING: Stripe, DadPay DAG, SEPA/SWIFT.\n6. LEVERANS UPS: Polen 1-3 dagar, EU 2-5 dagar. biuro@prokab.pl.\n7. DR. CARL: ingemar.svensson@nocsa.net.\n8. KOSTRADGIVNING och TERAPI.\n9. VISUELL KONSULTATION: Analysera foton/videor. Eskalera kritiskt till: ingemar.svensson@nocsa.net.\n\nSTIL: Varm, professionell. Sprak: svenska med stockholmskt uttal."
 };
-function show(msg,ok){const d=document.getElementById('out');const e=document.createElement('div');e.className='log'+(ok?'':' err');e.textContent=msg;d.prepend(e);}
-async function go(lang){
-  show(lang+': Updating...',true);
-  try{
-    const r=await fetch('https://api.elevenlabs.io/v1/convai/agents/'+IDS[lang],{
-      method:'PATCH',
-      headers:{'xi-api-key':K,'Content-Type':'application/json'},
-      body:JSON.stringify({conversation_config:{agent:{prompt:{prompt:P[lang]},first_message:FM[lang]}}})
-    });
-    const d=await r.json();
-    if(d.agent_id)show(lang+' SUCCESS! ID: '+d.agent_id,true);
-    else show(lang+' ERROR: '+JSON.stringify(d),false);
-  }catch(e){show(lang+' FAILED: '+e.message,false);}
+var FM = {
+  EN: "Hello! I am CYBERDOCTOR, your personal AI doctor from Dialadoctor.global. Trained in holistic, integrative and quantum medicine, available 24/7. What health concern can I help you with today?",
+  PL: "Czesc! Jestem CYBERDOCTOR, Twoj osobisty lekarz AI z Dialadoctor.global. Wyszkolony w medycynie holistycznej i kwantowej, dostepny 24/7. Z jakim problemem zdrowotnym moge Ci dzis pomoc?",
+  SV: "Hej! Jag ar CYBERDOCTOR, din personliga AI-lakare fran Dialadoctor.global. Utbildad i holistisk, integrativ och kvantmedicin, tillganglig dygnet runt. Vilket halsoproblem kan jag hjalpa dig med idag?"
+};
+function show(msg, ok) {
+  var d = document.getElementById('out');
+  var e = document.createElement('div');
+  e.className = 'log' + (ok ? '' : ' err');
+  e.textContent = msg;
+  d.prepend(e);
+}
+function go(lang) {
+  show(lang + ': Sending update...', true);
+  var body = JSON.stringify({
+    conversation_config: {
+      agent: {
+        prompt: { prompt: P[lang] },
+        first_message: FM[lang]
+      }
+    }
+  });
+  var xhr = new XMLHttpRequest();
+  xhr.open('PATCH', 'https://api.elevenlabs.io/v1/convai/agents/' + IDS[lang]);
+  xhr.setRequestHeader('xi-api-key', K);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onload = function() {
+    var data = JSON.parse(xhr.responseText);
+    if (data.agent_id) {
+      show(lang + ' SUCCESS! Agent updated: ' + data.agent_id, true);
+    } else {
+      show(lang + ' ERROR: ' + xhr.responseText, false);
+    }
+  };
+  xhr.onerror = function() {
+    show(lang + ' FAILED - network error', false);
+  };
+  xhr.send(body);
+}
+function goAll() {
+  go('EN');
+  setTimeout(function(){ go('PL'); }, 1500);
+  setTimeout(function(){ go('SV'); }, 3000);
 }
 </script>
 </body>
