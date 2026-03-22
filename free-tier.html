@@ -12,7 +12,7 @@ h1{font-size:2rem;font-weight:700;letter-spacing:.15em;color:#81c784;margin-bott
 .orb.sp{border-color:#4fc3f7;box-shadow:0 0 40px rgba(79,195,247,.3);animation:pu .8s ease-in-out infinite}
 .orb.er{border-color:#ef9a9a}
 @keyframes pu{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-#st{font-size:1rem;color:#78909c;min-height:24px;margin-bottom:6px}
+#st{font-size:.9rem;color:#78909c;min-height:24px;margin-bottom:6px;max-width:320px}
 #st.on{color:#81c784}#st.sp{color:#4fc3f7}#st.er{color:#ef9a9a}
 #tx{font-size:.78rem;color:#607d8b;max-width:320px;min-height:30px;margin-bottom:8px;line-height:1.5}
 #rs{max-width:340px;background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.2);border-radius:10px;padding:12px;font-size:.8rem;color:#a5d6a7;line-height:1.6;text-align:left;display:none;max-height:180px;overflow-y:auto;margin-bottom:10px}
@@ -22,10 +22,11 @@ h1{font-size:2rem;font-weight:700;letter-spacing:.15em;color:#81c784;margin-bott
 .kbox{margin-top:14px;padding:14px 16px;background:rgba(10,15,26,.6);border:1px solid #1e3a5f;border-radius:10px;max-width:340px;width:100%}
 .kbox label{font-size:.7rem;color:#607d8b;display:block;margin-bottom:6px;text-align:left}
 .krow{display:flex;gap:8px}
-.kbox input{flex:1;padding:8px 10px;background:#0a0f1a;border:1px solid #2a3a4a;border-radius:8px;color:#e3f2fd;font-size:.8rem;font-family:monospace;min-width:0}
+.kbox input{flex:1;padding:8px 10px;background:#0a0f1a;border:1px solid #2a3a4a;border-radius:8px;color:#e3f2fd;font-size:.75rem;font-family:monospace;min-width:0}
 .ksave{padding:8px 14px;border-radius:8px;border:none;background:#1a3a5a;color:#4fc3f7;cursor:pointer;font-size:.8rem;white-space:nowrap;flex-shrink:0}
 .ksave:hover{background:#1e4a6a}
 #ks{font-size:.7rem;color:#81c784;margin-top:5px;display:none;text-align:left}
+.micbtn{margin-top:10px;padding:8px 20px;border-radius:8px;border:1px solid #4fc3f7;background:transparent;color:#4fc3f7;cursor:pointer;font-size:.8rem}
 .bk{margin-top:10px;font-size:.7rem}.bk a{color:#2e4057;text-decoration:none}
 .brand{margin-top:8px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
 </style></head><body>
@@ -52,16 +53,15 @@ h1{font-size:2rem;font-weight:700;letter-spacing:.15em;color:#81c784;margin-bott
 <div id="ks">Key saved! Ready to use.</div>
 </div>
 
+<button class="micbtn" onclick="requestMic()">Allow Microphone</button>
+
 <div class="bk"><a href="index.html">&larr; Back to CYBERDOCTOR Premium</a></div>
-<div class="brand">Dialadoctor.global &middot; Free AI Layer &middot; v3.0</div>
+<div class="brand">Dialadoctor.global &middot; Free AI Layer &middot; v4.0</div>
 
 <script>
-var L='en',busy=false,rec=null,ctx=null;
+var L='en',busy=false,rec=null,ctx=null,micStream=null;
 var GKEY=localStorage.getItem('groq_key')||'';
-if(GKEY){
-  document.getElementById('gkey').value=GKEY;
-  document.getElementById('ks').style.display='block';
-}
+if(GKEY){document.getElementById('gkey').value=GKEY;document.getElementById('ks').style.display='block';}
 var MSG=[{role:'system',content:'You are CYBERDOCTOR, a holistic AI health assistant for Dialadoctor.global. Be concise (max 3 sentences), warm and helpful. Offer Quantcorder scans (99 EUR/scan, 49 EUR/month). Recommend Dr. Carl Svensson for serious issues via ingemar.svensson@nocsa.net.'}];
 var I={en:{tap:'Tap to speak',listen:'Listening...',think:'Thinking...',speak:'Speaking...',err:'Error. Try again.',tg:'Free AI Health Assistant'},
   pl:{tap:'Dotknij, aby m\u00f3wi\u0107',listen:'S\u0142ucham...',think:'My\u015bl\u0119...',speak:'M\u00f3wi\u0119...',err:'B\u0142\u0105d. Spr\u00f3buj ponownie.',tg:'Bezp\u0142atny asystent zdrowia AI'},
@@ -73,16 +73,22 @@ var VOICE={en:'en-US',pl:'pl-PL',sv:'sv-SE'};
 
 function saveKey(){
   var k=document.getElementById('gkey').value.trim();
-  if(k){
-    GKEY=k;
-    localStorage.setItem('groq_key',k);
-    document.getElementById('ks').style.display='block';
-    ss(I[L].tap,'');
-  }
+  if(k){GKEY=k;localStorage.setItem('groq_key',k);document.getElementById('ks').style.display='block';ss(I[L].tap,'');}
 }
 function setL(l){L=l;['en','pl','sv'].forEach(x=>document.getElementById('b'+x).classList.toggle('a',x===l));document.getElementById('tg').textContent=I[l].tg;ss(I[l].tap,'');MSG=[{role:'system',content:SYS[l]}];}
 function ss(st,cls){var e=document.getElementById('st');e.textContent=st;e.className=cls||'';}
 function setOrb(c){document.getElementById('orb').className='orb'+(c?' '+c:'');}
+
+async function requestMic(){
+  ss('Requesting microphone permission...','');
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    ss('Microphone granted! Tap the orb to speak.','on');
+    document.getElementById('orb').style.borderColor='#81c784';
+  }catch(e){
+    ss('Microphone denied: '+e.message+'. Please allow mic in browser settings.','er');
+  }
+}
 
 function tap(){
   if(busy)return;
@@ -91,29 +97,39 @@ function tap(){
   if(ctx.state==='suspended')ctx.resume();
   startListen();
 }
+
 function startListen(){
-  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){alert('Use Chrome or Edge browser.');return;}
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){ss('Chrome or Edge browser required','er');return;}
   busy=true;
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   rec=new SR();rec.lang=VOICE[L];rec.interimResults=false;rec.maxAlternatives=1;
   setOrb('on');ss(I[L].listen,'on');
   rec.onresult=function(e){var t=e.results[0][0].transcript;document.getElementById('tx').textContent='"'+t+'"';askGroq(t);};
-  rec.onerror=function(e){busy=false;setOrb('er');ss(I[L].err+' ('+(e.error||'')+')','er');setTimeout(function(){setOrb('');ss(I[L].tap,'');},2000);};
+  rec.onerror=function(e){
+    busy=false;setOrb('er');
+    var msg=e.error||'unknown';
+    if(msg==='network')msg='network - click "Allow Microphone" button first';
+    if(msg==='not-allowed')msg='microphone blocked - click "Allow Microphone" button';
+    ss('Error: '+msg,'er');
+    setTimeout(function(){setOrb('');ss(I[L].tap,'');},3000);
+  };
   rec.onend=function(){if(busy&&document.getElementById('st').textContent===I[L].listen){setOrb('');ss(I[L].think,'');}};
   rec.start();
 }
+
 async function askGroq(q){
   setOrb('');ss(I[L].think,'');MSG.push({role:'user',content:q});
   try{
     var r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+GKEY},body:JSON.stringify({model:'llama3-8b-8192',messages:MSG,max_tokens:200,temperature:0.7})});
     var d=await r.json();
-    if(!r.ok)throw new Error(d.error&&d.error.message||'Groq error');
+    if(!r.ok)throw new Error(d.error&&d.error.message||'Groq API error '+r.status);
     var ans=d.choices[0].message.content;
     MSG.push({role:'assistant',content:ans});
     var el=document.getElementById('rs');el.style.display='block';el.textContent=ans;
     speak(ans);
-  }catch(e){busy=false;setOrb('er');ss(I[L].err+' ('+e.message+')','er');setTimeout(function(){setOrb('');ss(I[L].tap,'');},3000);}
+  }catch(e){busy=false;setOrb('er');ss(I[L].err+': '+e.message,'er');setTimeout(function(){setOrb('');ss(I[L].tap,'');},3000);}
 }
+
 function speak(txt){
   setOrb('sp');ss(I[L].speak,'sp');
   var u=new SpeechSynthesisUtterance(txt);u.lang=VOICE[L];u.rate=1.0;u.pitch=1.0;
