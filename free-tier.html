@@ -6,17 +6,20 @@
 body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
 h1{font-size:2rem;font-weight:700;letter-spacing:.15em;color:#81c784;margin-bottom:4px}
 .sub{font-size:.75rem;color:#455a64;text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
-.orb{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#1a2a1a,#0a0f0a);border:2px solid #1e3a1e;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s;font-size:2.4rem;margin:0 auto 12px;user-select:none;-webkit-user-select:none}
-.orb.on{border-color:#81c784;box-shadow:0 0 50px rgba(129,199,132,.4);animation:pu 2s ease-in-out infinite}
-.orb.sp{border-color:#4fc3f7;box-shadow:0 0 40px rgba(79,195,247,.3);animation:pu .8s ease-in-out infinite}
+.orb{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#1a2a1a,#0a0f0a);border:2px solid #1e3a1e;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s;font-size:2.6rem;margin:0 auto 12px;user-select:none;-webkit-user-select:none}
+.orb.idle{border-color:#1e3a1e}
+.orb.rec{border-color:#ef9a9a;box-shadow:0 0 60px rgba(239,154,154,.6);animation:pu .6s ease-in-out infinite}
+.orb.think{border-color:#fff59d;box-shadow:0 0 40px rgba(255,245,157,.3);animation:pu 1s ease-in-out infinite}
+.orb.sp{border-color:#4fc3f7;box-shadow:0 0 50px rgba(79,195,247,.4);animation:pu .8s ease-in-out infinite}
 .orb.er{border-color:#ef9a9a}
-@keyframes pu{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-#st{font-size:.85rem;color:#78909c;min-height:22px;margin-bottom:4px;max-width:320px}
-#st.on{color:#81c784}#st.sp{color:#4fc3f7}#st.er{color:#ef9a9a;font-size:.75rem}
-#tx{font-size:.75rem;color:#607d8b;max-width:320px;min-height:20px;margin-bottom:6px}
-#rs{max-width:340px;background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.2);border-radius:10px;padding:12px;font-size:.8rem;color:#a5d6a7;line-height:1.6;text-align:left;display:none;max-height:160px;overflow-y:auto;margin-bottom:10px}
+@keyframes pu{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+#st{font-size:.9rem;color:#78909c;min-height:24px;margin-bottom:4px;max-width:300px}
+#st.rec{color:#ef9a9a;font-weight:600}#st.think{color:#fff59d}#st.sp{color:#4fc3f7}#st.er{color:#ef9a9a;font-size:.75rem}
+.hint{font-size:.7rem;color:#37474f;margin-bottom:12px}
+#tx{font-size:.75rem;color:#607d8b;max-width:320px;min-height:18px;margin-bottom:8px;font-style:italic}
+#rs{max-width:340px;background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.2);border-radius:10px;padding:12px;font-size:.85rem;color:#a5d6a7;line-height:1.6;text-align:left;display:none;max-height:180px;overflow-y:auto;margin-bottom:12px}
 .lb{display:flex;gap:8px;margin-bottom:12px;justify-content:center}
-.lb button{padding:5px 12px;border-radius:16px;border:1px solid #2a3a2a;background:transparent;color:#556;cursor:pointer;font-size:11px}
+.lb button{padding:5px 14px;border-radius:16px;border:1px solid #2a3a2a;background:transparent;color:#556;cursor:pointer;font-size:12px}
 .lb button.a{background:#1a2a1a;border-color:#81c784;color:#81c784}
 .sep{width:100%;max-width:340px;border:none;border-top:1px solid #1e2a3a;margin:12px 0}
 .sect{font-size:.65rem;color:#37474f;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
@@ -31,7 +34,6 @@ h1{font-size:2rem;font-weight:700;letter-spacing:.15em;color:#81c784;margin-bott
 .kbox input{flex:1;padding:7px 10px;background:#0a0f1a;border:1px solid #2a3a4a;border-radius:8px;color:#e3f2fd;font-size:.75rem;font-family:monospace;min-width:0}
 .ksave{padding:7px 12px;border-radius:8px;border:none;background:#1a3a5a;color:#4fc3f7;cursor:pointer;font-size:.75rem;white-space:nowrap}
 #ks{font-size:.65rem;color:#81c784;margin-top:4px;display:none;text-align:left}
-.micbtn{margin-top:8px;padding:7px 16px;border-radius:8px;border:1px solid #4fc3f7;background:transparent;color:#4fc3f7;cursor:pointer;font-size:.75rem}
 .bk{margin-top:10px;font-size:.65rem}.bk a{color:#263238;text-decoration:none}
 .brand{margin-top:6px;font-size:.55rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
 </style></head><body>
@@ -44,53 +46,51 @@ h1{font-size:2rem;font-weight:700;letter-spacing:.15em;color:#81c784;margin-bott
 <div class="sub" id="tg">Free AI Health Assistant</div>
 <div id="rs"></div>
 <div style="margin-bottom:10px">
-<div class="orb" id="orb" onclick="tap()">&#129314;</div>
+<div class="orb idle" id="orb" onclick="tap()">&#129314;</div>
 </div>
-<div id="st">Tap orb to speak, or type below</div>
+<div id="st">Tap orb to speak</div>
+<div class="hint">Tap once to start recording &bull; Tap again to stop &amp; send</div>
 <div id="tx"></div>
-
-<div class="sect">TYPE YOUR QUESTION</div>
+<hr class="sep">
+<div class="sect">OR TYPE YOUR QUESTION</div>
 <div class="trow">
 <input type="text" id="tinput" placeholder="e.g. I have a headache..." onkeydown="if(event.key==='Enter')sendText()">
 <button class="tsend" onclick="sendText()">Send</button>
 </div>
-
 <hr class="sep">
 <div class="kbox">
-<label>Groq API Key</label>
+<label>Groq API Key (used for both voice &amp; AI)</label>
 <div class="krow">
 <input type="password" id="gkey" placeholder="gsk_...">
 <button class="ksave" onclick="saveKey()">Save</button>
 </div>
-<div id="ks">Saved!</div>
+<div id="ks">&#10003; Key saved!</div>
 </div>
-<button class="micbtn" onclick="requestMic()">Allow Microphone (for voice)</button>
 <div class="bk"><a href="index.html">&larr; Premium version</a></div>
-<div class="brand">Dialadoctor.global &middot; Free AI &middot; v5.0</div>
+<div class="brand">Dialadoctor.global &middot; Free AI &middot; v6.0</div>
 
 <script>
-var L='en',busy=false,rec=null,ctx=null;
+var L='en',busy=false,mediaRec=null,recStream=null,recChunks=[],recording=false,ctx=null;
 var GKEY=localStorage.getItem('groq_key')||'';
 if(GKEY){document.getElementById('gkey').value=GKEY;document.getElementById('ks').style.display='block';}
-var MSG=[{role:'system',content:'You are CYBERDOCTOR, a holistic AI health assistant for Dialadoctor.global. Be concise (max 3 sentences). Offer Quantcorder scans (99 EUR/scan, 49 EUR/month). Recommend Dr. Carl Svensson for serious issues via ingemar.svensson@nocsa.net.'}];
-var I={en:{tap:'Tap orb to speak, or type below',listen:'Listening...',think:'Thinking...',speak:'Speaking...',tg:'Free AI Health Assistant'},
-  pl:{tap:'Dotknij orb lub wpisz pytanie',listen:'S\u0142ucham...',think:'My\u015bl\u0119...',speak:'M\u00f3wi\u0119...',tg:'Bezp\u0142atny asystent zdrowia AI'},
-  sv:{tap:'Tryck orb eller skriv fr\u00e5ga',listen:'Lyssnar...',think:'T\u00e4nker...',speak:'Talar...',tg:'Gratis AI-h\u00e4lsoassistent'}};
-var SYS={en:'You are CYBERDOCTOR, a holistic AI health assistant. Respond in English. Max 3 sentences.',
-  pl:'Jeste\u015b CYBERDOCTOR, asystentem zdrowia AI. Odpowiadaj po polsku. Max 3 zdania.',
-  sv:'Du \u00e4r CYBERDOCTOR, AI-h\u00e4lsoassistent. Svara p\u00e5 svenska. Max 3 meningar.'};
+var I={
+  en:{tap:'Tap orb to speak',rec:'Recording... tap orb to stop',think:'Thinking...',speak:'Speaking...',tg:'Free AI Health Assistant'},
+  pl:{tap:'Dotknij orb aby m\u00f3wi\u0107',rec:'Nagrywam... dotknij aby zatrzyma\u0107',think:'My\u015bl\u0119...',speak:'M\u00f3wi\u0119...',tg:'Bezp\u0142atny asystent zdrowia AI'},
+  sv:{tap:'Tryck orb f\u00f6r att tala',rec:'Spelar in... tryck f\u00f6r att stoppa',think:'T\u00e4nker...',speak:'Talar...',tg:'Gratis AI-h\u00e4lsoassistent'}
+};
+var SYS={
+  en:'You are CYBERDOCTOR, a holistic AI health assistant for Dialadoctor.global. Be concise (max 3 sentences). Offer Quantcorder scans (99 EUR/scan, 49 EUR/month). Recommend Dr. Carl Svensson for serious issues via ingemar.svensson@nocsa.net.',
+  pl:'Jeste\u015b CYBERDOCTOR, asystentem zdrowia AI dla Dialadoctor.global. B\u0105d\u017a zwi\u0119z\u0142y (maks. 3 zdania). Oferuj skany Quantcorder (99 EUR/skan, 49 EUR/miesi\u0105c). W powa\u017cnych przypadkach polecaj Dr. Carla Svenssona przez ingemar.svensson@nocsa.net.',
+  sv:'Du \u00e4r CYBERDOCTOR, en holistisk AI-h\u00e4lsoassistent f\u00f6r Dialadoctor.global. Var kortfattad (max 3 meningar). Erbjud Quantcorder-skanningar (99 EUR/skanning, 49 EUR/m\u00e5nad). Rekommendera Dr. Carl Svensson f\u00f6r allvarliga problem via ingemar.svensson@nocsa.net.'
+};
 var VOICE={en:'en-US',pl:'pl-PL',sv:'sv-SE'};
+var WLANG={en:'en',pl:'pl',sv:'sv'};
+var MSG=[{role:'system',content:SYS['en']}];
 
 function saveKey(){var k=document.getElementById('gkey').value.trim();if(k){GKEY=k;localStorage.setItem('groq_key',k);document.getElementById('ks').style.display='block';ss(I[L].tap,'');}}
-function setL(l){L=l;['en','pl','sv'].forEach(x=>document.getElementById('b'+x).classList.toggle('a',x===l));document.getElementById('tg').textContent=I[l].tg;ss(I[l].tap,'');MSG=[{role:'system',content:SYS[l]}];}
+function setL(l){L=l;['en','pl','sv'].forEach(function(x){document.getElementById('b'+x).classList.toggle('a',x===l);});document.getElementById('tg').textContent=I[l].tg;ss(I[l].tap,'');MSG=[{role:'system',content:SYS[l]}];}
 function ss(st,cls){var e=document.getElementById('st');e.textContent=st;e.className=cls||'';}
-function setOrb(c){document.getElementById('orb').className='orb'+(c?' '+c:'');}
-
-async function requestMic(){
-  ss('Requesting microphone...','');
-  try{await navigator.mediaDevices.getUserMedia({audio:true});ss('Microphone granted! Tap orb.','on');}
-  catch(e){ss('Mic denied. Use text input below.','er');}
-}
+function setOrb(c){document.getElementById('orb').className='orb '+(c||'idle');}
 
 function sendText(){
   var q=document.getElementById('tinput').value.trim();
@@ -101,42 +101,101 @@ function sendText(){
   askGroq(q);
 }
 
-function tap(){
-  if(busy)return;
+async function tap(){
   if(!GKEY){ss('Save your Groq key first','er');return;}
-  if(!ctx)ctx=new AudioContext();
-  if(ctx.state==='suspended')ctx.resume();
-  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){ss('Voice not supported - use text input below','er');return;}
-  busy=true;
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  rec=new SR();rec.lang=VOICE[L];rec.interimResults=false;
-  setOrb('on');ss(I[L].listen,'on');
-  rec.onresult=function(e){var t=e.results[0][0].transcript;document.getElementById('tx').textContent='"'+t+'"';askGroq(t);};
-  rec.onerror=function(e){busy=false;setOrb('er');ss('Voice error ('+( e.error||'?')+') - use text input below','er');setTimeout(function(){setOrb('');ss(I[L].tap,'');},3000);};
-  rec.onend=function(){if(busy&&document.getElementById('st').textContent===I[L].listen){setOrb('');ss(I[L].think,'');}};
-  rec.start();
+  if(!ctx){try{ctx=new AudioContext();}catch(e){}}
+  if(ctx&&ctx.state==='suspended')ctx.resume();
+
+  if(recording){
+    // Stop recording
+    recording=false;
+    if(mediaRec&&mediaRec.state==='recording'){mediaRec.stop();}
+    return;
+  }
+
+  if(busy)return;
+
+  // Start recording
+  try{
+    recStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+  }catch(e){
+    ss('Microphone access denied. Use text input below.','er');
+    return;
+  }
+
+  recChunks=[];
+  var mimeType='audio/webm';
+  if(!MediaRecorder.isTypeSupported('audio/webm')){
+    mimeType=MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'';
+  }
+  mediaRec=mimeType?new MediaRecorder(recStream,{mimeType:mimeType}):new MediaRecorder(recStream);
+  mediaRec.ondataavailable=function(e){if(e.data&&e.data.size>0)recChunks.push(e.data);};
+  mediaRec.onstop=async function(){
+    recStream.getTracks().forEach(function(t){t.stop();});
+    if(recChunks.length===0){busy=false;setOrb('');ss(I[L].tap,'');return;}
+    var blob=new Blob(recChunks,{type:mediaRec.mimeType||'audio/webm'});
+    setOrb('think');ss(I[L].think,'think');
+    var fd=new FormData();
+    fd.append('file',blob,'audio.webm');
+    fd.append('model','whisper-large-v3-turbo');
+    fd.append('language',WLANG[L]);
+    try{
+      var resp=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+GKEY},
+        body:fd
+      });
+      var data=await resp.json();
+      if(!resp.ok)throw new Error((data.error&&data.error.message)||'Whisper error '+resp.status);
+      var txt=(data.text||'').trim();
+      if(!txt){busy=false;setOrb('');ss('Could not hear you. Try again or use text below.','er');setTimeout(function(){ss(I[L].tap,'');setOrb('');},3000);return;}
+      document.getElementById('tx').textContent='\u201c'+txt+'\u201d';
+      askGroq(txt);
+    }catch(e){
+      busy=false;setOrb('er');ss('Voice error: '+e.message,'er');
+      setTimeout(function(){setOrb('');ss(I[L].tap,'');},4000);
+    }
+  };
+  recording=true;busy=true;
+  mediaRec.start(250);
+  setOrb('rec');ss(I[L].rec,'rec');
+  // Auto-stop after 20 seconds
+  setTimeout(function(){if(recording&&mediaRec&&mediaRec.state==='recording'){recording=false;mediaRec.stop();}},20000);
 }
 
 async function askGroq(q){
-  setOrb('');ss(I[L].think,'');MSG.push({role:'user',content:q});busy=true;
+  setOrb('think');ss(I[L].think,'think');
+  MSG.push({role:'user',content:q});busy=true;
   try{
-    var r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+GKEY},body:JSON.stringify({model:'llama3-8b-8192',messages:MSG,max_tokens:200,temperature:0.7})});
+    var r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GKEY},
+      body:JSON.stringify({model:'llama3-8b-8192',messages:MSG,max_tokens:200,temperature:0.7})
+    });
     var d=await r.json();
-    if(!r.ok)throw new Error(d.error&&d.error.message||'Groq error '+r.status);
+    if(!r.ok)throw new Error((d.error&&d.error.message)||'Groq error '+r.status);
     var ans=d.choices[0].message.content;
     MSG.push({role:'assistant',content:ans});
     var el=document.getElementById('rs');el.style.display='block';el.textContent=ans;
     speak(ans);
-  }catch(e){busy=false;setOrb('er');ss('Groq error: '+e.message,'er');setTimeout(function(){setOrb('');ss(I[L].tap,'');},3000);}
+  }catch(e){
+    busy=false;setOrb('er');ss('AI error: '+e.message,'er');
+    setTimeout(function(){setOrb('');ss(I[L].tap,'');},4000);
+  }
 }
 
 function speak(txt){
   setOrb('sp');ss(I[L].speak,'sp');
-  var u=new SpeechSynthesisUtterance(txt);u.lang=VOICE[L];u.rate=1.0;u.pitch=1.0;
-  var vs=speechSynthesis.getVoices().filter(function(v){return v.lang.startsWith(L==='en'?'en':L==='pl'?'pl':'sv');});
-  if(vs.length)u.voice=vs[0];
-  u.onend=function(){busy=false;setOrb('');ss(I[L].tap,'');};
-  u.onerror=function(){busy=false;setOrb('');ss(I[L].tap,'');};
-  speechSynthesis.speak(u);
+  var u=new SpeechSynthesisUtterance(txt);
+  u.lang=VOICE[L];u.rate=1.0;u.pitch=1.0;
+  function doSpeak(){
+    var vs=speechSynthesis.getVoices().filter(function(v){return v.lang.startsWith(L==='sv'?'sv':L==='pl'?'pl':'en');});
+    if(vs.length)u.voice=vs[0];
+    u.onend=function(){busy=false;setOrb('');ss(I[L].tap,'');};
+    u.onerror=function(){busy=false;setOrb('');ss(I[L].tap,'');};
+    speechSynthesis.speak(u);
+  }
+  if(speechSynthesis.getVoices().length){doSpeak();}
+  else{speechSynthesis.onvoiceschanged=function(){doSpeak();};}
 }
 </script></body></html>
