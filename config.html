@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CYBERDOCTOR - Setup</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:500px;margin:0 auto;padding:30px 20px;background:#0a0a1a;color:#e3f2fd}
+h1{color:#4fc3f7;text-align:center;margin-bottom:6px;font-size:1.8rem;letter-spacing:.1em}
+.sub{text-align:center;color:#455a64;font-size:.85rem;margin-bottom:30px}
+.card{background:#0d1b2a;border:1px solid #1e3a5f;border-radius:12px;padding:20px;margin-bottom:16px}
+.card h2{font-size:.9rem;color:#81c784;margin-bottom:4px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.card .desc{font-size:.75rem;color:#37474f;margin-bottom:12px;line-height:1.4}
+label{display:block;font-size:.8rem;color:#546e7a;margin-bottom:6px}
+input{width:100%;padding:10px 12px;background:#0a0f1a;border:1px solid #1e3a5f;border-radius:8px;color:#e3f2fd;font-size:.85rem;font-family:monospace;outline:none;transition:border-color .2s}
+input:focus{border-color:#4fc3f7}
+.status-icon{float:right;font-size:.75rem;margin-bottom:4px}
+.check{color:#81c784}.cross{color:#ef9a9a}
+.link{font-size:.72rem;color:#455a64;margin-top:6px}
+.link a{color:#4fc3f7;text-decoration:none}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;transition:all .2s}
+.btn-save{background:#27ae60;color:white}
+.btn-save:hover{background:#2ecc71}
+.btn-test{background:#1a2a3a;color:#4fc3f7;border:1px solid #1e3a5f}
+.btn-test:hover{border-color:#4fc3f7}
+#save-msg{text-align:center;min-height:20px;font-size:.85rem;color:#81c784;margin-bottom:10px}
+#test-msg{text-align:center;min-height:20px;font-size:.8rem;color:#78909c;margin-bottom:10px}
+.back{text-align:center;margin-top:10px}
+.back a{color:#455a64;font-size:.8rem;text-decoration:none}
+.back a:hover{color:#4fc3f7}
+</style>
+</head>
+<body>
+<h1>CYBERDOCTOR</h1>
+<div class="sub">Setup Free API Keys</div>
+
+<div class="card">
+  <h2>Groq API Key <span id="gs" class="status-icon"></span></h2>
+  <div class="desc">Powers the FREE AI voice layer — Llama 3 model for patient conversations at zero cost</div>
+  <label>Paste your Groq key here:</label>
+  <input id="groq" type="password" placeholder="gsk_..." autocomplete="off">
+  <div class="link">Get free key: <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></div>
+</div>
+
+<div class="card">
+  <h2>Gemini Vision Key <span id="ms" class="status-icon"></span></h2>
+  <div class="desc">Powers photo analysis — patients can send symptom photos for AI medical assessment</div>
+  <label>Paste your Gemini key here:</label>
+  <input id="gemini" type="password" placeholder="AIza..." autocomplete="off">
+  <div class="link">Get free key: <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></div>
+</div>
+
+<div id="save-msg"></div>
+<button class="btn btn-save" onclick="saveKeys()">&#x1F4BE; Save Keys</button>
+<div id="test-msg"></div>
+<button class="btn btn-test" onclick="testKeys()">&#x1F527; Test Both Keys</button>
+<div class="back"><a href="index.html">&#x2190; Back to CYBERDOCTOR</a></div>
+
+<script>
+function loadKeys(){
+  var g=localStorage.getItem('groq_key');
+  var m=localStorage.getItem('gemini_key');
+  if(g){document.getElementById('groq').value=g;document.getElementById('gs').innerHTML='<span class="check">&#x2713; saved</span>';}
+  else document.getElementById('gs').innerHTML='<span class="cross">not set</span>';
+  if(m){document.getElementById('gemini').value=m;document.getElementById('ms').innerHTML='<span class="check">&#x2713; saved</span>';}
+  else document.getElementById('ms').innerHTML='<span class="cross">not set</span>';
+}
+function saveKeys(){
+  var g=document.getElementById('groq').value.trim();
+  var m=document.getElementById('gemini').value.trim();
+  var saved=[];
+  if(g){localStorage.setItem('groq_key',�);saved.push('Groq');}
+  if(m){localStorage.setItem('gemini_key',m);saved.push('Gemini');}
+  var msg=document.getElementById('save-msg');
+  if(saved.length){msg.innerHTML=saved.join(' & ')+' key'+(saved.length>1?'s':'')+' saved! <a href="index.html" style="color:#4fc3f7">Open CYBERDOCTOR</a>';loadKeys();}
+  else msg.innerHTML='<span style="color:#ef9a9a">Enter at least one key</span>';
+}
+async function testKeys(){
+  var g=localStorage.getItem('groq_key');
+  var m=localStorage.getItem('gemini_key');
+  var el=document.getElementById('test-msg');
+  el.innerHTML='Testing...';
+  var res=[];
+  if(g){
+    try{
+      var r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+g,'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:'Say OK'}],max_tokens:5})});
+      var d=await r.json();
+      res.push(d.choices?'<span style="color:#81c784">Groq: OK</span>':'<span style="color:#ef9a9a">Groq: Error</span>');
+    }catch(e){res.push('<span style="color:#ef9a9a">Groq: Failed</span>');}
+  }else res.push('<span style="color:#455a64">Groq: no key</span>');
+  if(m){
+    try{
+      var r2=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+m,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:'Say OK'}]}]})});
+      var d2=await r2.json();
+      res.push(d2.candidates?'<span style="color:#81c784">Gemini: OK</span>':'<span style="color:#ef9a9a">Gemini: Error</span>');
+    }catch(e){res.push('<span style="color:#ef9a9a">Gemini: Failed</span>');}
+  }else res.push('<span style="color:#455a64">Gemini: no key</span>');
+  el.innerHTML=res.join(' &nbsp;|&nbsp; ');
+}
+loadKeys();
+</script>
+</body>
+</html>
