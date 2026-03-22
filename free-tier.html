@@ -67,7 +67,7 @@ h1{font-size:2rem;font-weight:700;letter-spacing:.15em;color:#81c784;margin-bott
 <div id="ks">&#10003; Key saved!</div>
 </div>
 <div class="bk"><a href="index.html">&larr; Premium version</a></div>
-<div class="brand">Dialadoctor.global &middot; Free AI &middot; v6.0</div>
+<div class="brand">Dialadoctor.global &middot; Free AI &middot; v6.1</div>
 
 <script>
 var L='en',busy=false,mediaRec=null,recStream=null,recChunks=[],recording=false,ctx=null;
@@ -170,7 +170,7 @@ async function askGroq(q){
     var r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+GKEY},
-      body:JSON.stringify({model:'llama3-8b-8192',messages:MSG,max_tokens:200,temperature:0.7})
+      body:JSON.stringify({model:'llama-3.1-8b-instant',messages:MSG,max_tokens:200,temperature:0.7})
     });
     var d=await r.json();
     if(!r.ok)throw new Error((d.error&&d.error.message)||'Groq error '+r.status);
