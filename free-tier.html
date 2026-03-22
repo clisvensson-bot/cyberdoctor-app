@@ -1,0 +1,145 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>CYBERDOCTOR FREE</title><meta name="theme-color" content="#0a0a1a">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+h1{font-size:2rem;font-weight:700;letter-spacing:.15em;color:#81c784;margin-bottom:4px}
+.sub{font-size:.75rem;color:#455a64;text-transform:uppercase;letter-spacing:.08em;margin-bottom:24px}
+.orb{width:140px;height:140px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#1a2a1a,#0a0f0a);border:2px solid #1e3a1e;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s;font-size:2.8rem;margin:0 auto 20px;user-select:none;-webkit-user-select:none}
+.orb.on{border-color:#81c784;box-shadow:0 0 50px rgba(129,199,132,.4);animation:pu 2s ease-in-out infinite}
+.orb.sp{border-color:#4fc3f7;box-shadow:0 0 40px rgba(79,195,247,.3);animation:pu .8s ease-in-out infinite}
+.orb.er{border-color:#ef9a9a}
+@keyframes pu{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+#st{font-size:1rem;color:#78909c;min-height:26px;margin-bottom:8px}
+#st.on{color:#81c784}#st.sp{color:#4fc3f7}#st.er{color:#ef9a9a}
+#tx{font-size:.8rem;color:#607d8b;max-width:340px;min-height:36px;margin-bottom:10px;line-height:1.5}
+#rs{max-width:360px;background:rgba(129,199,132,.06);border:1px solid rgba(129,199,132,.2);border-radius:10px;padding:14px;font-size:.82rem;color:#a5d6a7;line-height:1.6;text-align:left;display:none;max-height:200px;overflow-y:auto;margin-bottom:12px}
+.lb{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;justify-content:center}
+.lb button{padding:5px 12px;border-radius:16px;border:1px solid #2a3a2a;background:transparent;color:#556;cursor:pointer;font-size:11px;transition:all .2s}
+.lb button.a{background:#1a2a1a;border-color:#81c784;color:#81c784}
+.cfg{margin-top:14px;padding:9px 20px;border-radius:24px;border:1px solid #2e4057;background:transparent;color:#455a64;cursor:pointer;font-size:13px;transition:all .2s}
+.cfg:hover{border-color:#81c784;color:#81c784}
+.bk{margin-top:8px;font-size:.7rem}.bk a{color:#2e4057;text-decoration:none}
+.brand{margin-top:10px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center}
+.modal.show{display:flex}
+.mbox{background:#0d1b2a;border:1px solid #1e3a5f;border-radius:12px;padding:24px;max-width:340px;width:90%}
+.mbox h3{color:#4fc3f7;margin-bottom:16px;font-size:1rem}
+.mbox input{width:100%;padding:9px 12px;background:#0a0f1a;border:1px solid #2a3a4a;border-radius:8px;color:#e3f2fd;font-size:.85rem;margin-bottom:12px;font-family:monospace}
+.mbox .row{display:flex;gap:8px}
+.mbox button{flex:1;padding:9px;border-radius:8px;border:none;cursor:pointer;font-size:.85rem}
+.msave{background:#1a3a5a;color:#4fc3f7}
+.mclose{background:#1a1a2a;color:#78909c}
+</style></head><body>
+<div class="lb">
+<button id="ben" class="a" onclick="setL('en')">EN</button>
+<button id="bpl" onclick="setL('pl')">PL</button>
+<button id="bsv" onclick="setL('sv')">SV</button>
+</div>
+<h1>CYBERDOCTOR</h1>
+<div class="sub" id="tg">Free AI Health Assistant</div>
+<div id="rs"></div>
+<div style="position:relative;margin-bottom:18px">
+<div class="orb" id="orb" onclick="tap()">&#129314;</div>
+</div>
+<div id="st">Tap to speak</div>
+<div id="tx"></div>
+<button class="cfg" onclick="showCfg()">&#9881; Setup API Key</button>
+<div class="bk"><a href="index.html">&larr; Back to CYBERDOCTOR Premium</a></div>
+<div class="brand">Dialadoctor.global &middot; Free AI Layer &middot; v1.0</div>
+
+<div class="modal" id="modal">
+<div class="mbox">
+<h3>&#9881; Configure CYBERDOCTOR Free</h3>
+<label style="font-size:.75rem;color:#607d8b;display:block;margin-bottom:4px">Groq API Key (free at console.groq.com)</label>
+<input type="password" id="gkey" placeholder="gsk_...">
+<div class="row">
+<button class="msave" onclick="saveCfg()">Save</button>
+<button class="mclose" onclick="hideCfg()">Cancel</button>
+</div>
+</div>
+</div>
+
+<script>
+var L='en', busy=false, rec=null, ctx=null, GKEY=localStorage.getItem('groq_key')||'';
+var MSG=[{role:'system',content:'You are CYBERDOCTOR, a holistic AI health assistant for Dialadoctor.global. You follow Dr. Carl Svensson guidelines. Be concise, warm, and helpful. Offer Quantcorder scans (99 EUR) and natural remedies. Always recommend consulting Dr. Carl for serious issues via ingemar.svensson@nocsa.net. Keep responses under 3 sentences for voice.'}];
+var I={en:{tap:'Tap to speak',listen:'Listening...',think:'Thinking...',speak:'Speaking...',err:'Error. Try again.',nokey:'Please set up your Groq API key first.',tg:'Free AI Health Assistant'},
+  pl:{tap:'Dotknij, aby m\u00f3wi\u0107',listen:'S\u0142ucham...',think:'My\u015b\u0119...',speak:'}M\u00f3wi\u0119...',err:'B\u0142\u0105d. Spr\u00f3buj ponownie.',nokey:'Prosz\u0119 najpierw skonfigurowa\u0107 klucz Groq.',tg:'Bezp\u0142atny asystent zdrowia AI'},
+  sv:{tap:'Tryck f\u00f6r att tala',listen:'Lyssnar...',think:'T\u00e4nker...',speak:'Talar...',err:'Fel. F\u00f6rs\u00f6k igen.',nokey:'V\u00e4nligen konfigurera din Groq-nyckel f\u00f6rst.',tg:'Gratis AI-h\u00e4lsoassistent'}};
+var SYS={en:'You are CYBERDOCTOR, a holistic AI health assistant. Respond in English. Be concise (max 3 sentences). You help patients of Dialadoctor.global with health questions, natural remedies, and quantum medicine guidance.',
+  pl:'Jeste\u015b CYBERDOCTOR, holistycznym asystentem zdrowia AI dla Dialadoctor.global. Odpowiadaj po polsku. B\u00e1d\u017a zwi\u0119z\u0142y (max 3 zdania). Pomagasz pacjentom w pytaniach zdrowotnych, naturalnych lekarstwach i medycynie kwantowej.',
+  sv:'Du \u00e4r CYBERDOCTOR, en holistisk AI-h\u00e4lsoassistent f\u00f6r Dialadoctor.global. Svara p\u00e5 svenska. Var kortfattad (max 3 meningar). Du hj\u00e4lper patienter med h\u00e4lsofr\u00e5gor, naturliga remedier och kvantmedicin.'};
+var VOICE={en:'en-US',pl:'pl-PL',sv:'sv-SE'};
+
+function setL(l){
+  L=l;
+  ['en','pl','sv'].forEach(x=>document.getElementById('b'+x).classList.toggle('a',x===l));
+  document.getElementById('tg').textContent=I[l].tg;
+  ss(I[l].tap,'');
+  MSG=[{role:'system',content:SYS[l]}];
+}
+function ss(st,cls){var e=document.getElementById('st');e.textContent=st;e.className=cls||'';}
+function setOrb(c){var o=document.getElementById('orb');o.className='orb'+(c?' '+c:'');}
+function showCfg(){document.getElementById('gkey').value=GKEY;document.getElementById('modal').classList.add('show');}
+function hideCfg(){document.getElementById('modal').classList.remove('show');}
+function saveCfg(){GKEY=document.getElementById('gkey').value.trim();localStorage.setItem('groq_key',GKEY);hideCfg();ss(I[L].tap,'');}
+
+function tap(){
+  if(busy)return;
+  if(!GKEY){showCfg();return;}
+  if(!ctx)ctx=new AudioContext();
+  if(ctx.state==='suspended')ctx.resume();
+  startListen();
+}
+
+function startListen(){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
+    alert('Speech recognition not supported. Use Chrome or Edge.');return;
+  }
+  busy=true;
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  rec=new SR();
+  rec.lang=VOICE[L]; rec.interimResults=false; rec.maxAlternatives=1;
+  setOrb('on'); ss(I[L].listen,'on');
+  rec.onresult=function(e){
+    var t=e.results[0][0].transcript;
+    document.getElementById('tx').textContent='"'+t+'"';
+    askGroq(t);
+  };
+  rec.onerror=function(){busy=false;setOrb('er');ss(I[L].err,'er');setTimeout(function(){setOrb('');ss(I[L].tap,'');},2000);};
+  rec.onend=function(){if(busy&&document.getElementById('st').textContent===I[L].listen){setOrb('');ss(I[L].think,'');}};
+  rec.start();
+}
+
+async function askGroq(q){
+  setOrb('');ss(I[L].think,'');
+  MSG.push({role:'user',content:q});
+  try{
+    var r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GKEY},
+      body:JSON.stringify({model:'llama3-8b-8192',messages:MSG,max_tokens:200,temperature:0.7})
+    });
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.error&&d.error.message||'Groq error');
+    var ans=d.choices[0].message.content;
+    MSG.push({role:'assistant',content:ans});
+    var el=document.getElementById('rs');
+    el.style.display='block'; el.textContent=ans;
+    speak(ans);
+  }catch(e){busy=false;setOrb('er');ss(I[L].err,'er');console.error(e);setTimeout(function(){setOrb('');ss(I[L].tap,'');},2500);}
+}
+
+function speak(txt){
+  setOrb('sp'); ss(I[L].speak,'sp');
+  var u=new SpeechSynthesisUtterance(txt);
+  u.lang=VOICE[L]; u.rate=1.0; u.pitch=1.0;
+  var vs=speechSynthesis.getVoices().filter(function(v){return v.lang.startsWith(L==='en'?'en':L==='pl'?'pl':'sv');});
+  if(vs.length)u.voice=vs[0];
+  u.onend=function(){busy=false;setOrb('');ss(I[L].tap,'');};
+  u.onerror=function(){busy=false;setOrb('');ss(I[L].tap,'');};
+  speechSynthesis.speak(u);
+}
+</script></body></html>
