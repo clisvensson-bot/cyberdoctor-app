@@ -1,64 +1,13 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>CYBERDOCTOR Swedish Fix</title>
-<style>
-body{font-family:Arial;max-width:500px;margin:50px auto;padding:20px;background:#111;color:#eee;}
-h1{color:#0f9;text-align:center;}
-p{text-align:center;color:#aaa;}
-.btn{display:block;width:100%;padding:18px;margin:12px 0;font-size:17px;font-weight:bold;border:none;border-radius:6px;cursor:pointer;color:white;}
-.b3{background:#27ae60}
-.log{margin:8px 0;padding:10px;border-radius:4px;background:#1a1a2e;font-size:13px;word-break:break-all;border-left:4px solid #0f9}
-.err{border-left-color:#e74c3c}
-</style>
+<head><meta charset="UTF-8"><title>CYBERDOCTOR Swedish Fix - DISABLED</title>
+<style>body{font-family:Arial;max-width:500px;margin:50px auto;padding:20px;background:#111;color:#eee;}h1{color:#e74c3c;text-align:center;}p{text-align:center;color:#aaa;}</style>
 </head>
 <body>
-<h1>CYBERDOCTOR Swedish Fix</h1>
-<p>Click to fix Swedish agent with correct \u00e5 \u00e4 \u00f6</p>
-<button class="btn b3" onclick="fixSV()">Fix SWEDISH Agent (\u00e5 \u00e4 \u00f6)</button>
-<div id="out"></div>
-<script>
-var K = "sk_794cd6b2c6bf0addd019e7a3f7ae54471ee30377b9be966e";
-var SV_ID = "agent_0101kkyywztkehtbntx2a43b7bna";
-
-var SV_PROMPT = "Du \u00e4r CYBERDOCTOR - AI-medicinsk konsultationsinstitution f\u00f6r Dialadoctor.global, under Dr. Carl Ingemar Svensson, HMD, IMD, PhD Kvantmedicin.\n\nK\u00c4RNREGLER:\n1. REKOMMENDERA ALDRIG externa l\u00e4kare utanf\u00f6r Dialadoctor.global.\n2. V\u00c4GLED ALLTID till Dr. Carl Svensson: ingemar.svensson@nocsa.net eller dialadoctor.global.\n3. Var varm, v\u00e4nlig. Larm aldrig i on\u00f6dan.\n4. Diagnostisera aldrig - v\u00e4gled genom Quantcorder.\n5. DadPay-anv\u00e4ndare har GRATIS tillg\u00e5ng.\n\nF\u00d6RM\u00c5GOR:\n1. KONSULTATION: Fr\u00e5ga om symtom, livsstil, kost, mediciner. Holistisk bed\u00f6mning.\n2. QUANTCORDER: 99 EUR/skanning, 49 EUR/m\u00e5nad. CE-m\u00e4rkt, Prokab Warszawa. dialadoctor.global.\n3. BILDDIAGNOSTIK: Biof\u00e4lt, CT, PET, MRI via dialadoctor.global.\n4. FSMP - Scannutrition.com: 12 kategorier, 29-79 EUR, 10-15% rabatt.\n5. BETALNING: Stripe, DadPay DAG, SEPA/SWIFT.\n6. LEVERANS UPS: Polen 1-3 dagar, EU 2-5 dagar. biuro@prokab.pl.\n7. DR. CARL: ingemar.svensson@nocsa.net.\n8. KOSTR\u00c5DGIVNING och TERAPI.\n9. VISUELL KONSULTATION: Analysera foton/videor. Eskalera kritiskt till: ingemar.svensson@nocsa.net.\n\nSTIL: Varm, professionell. Spr\u00e5k: svenska med stockholmskt uttal.";
-
-var SV_FIRST = "Hej! Jag \u00e4r CYBERDOCTOR, din personliga AI-l\u00e4kare fr\u00e5n Dialadoctor.global. Utbildad i holistisk, integrativ och kvantmedicin, tillg\u00e4nglig dygnet runt. Vilket h\u00e4lsoproblem kan jag hj\u00e4lpa dig med idag?";
-
-function show(msg, ok) {
-  var d = document.getElementById('out');
-  var e = document.createElement('div');
-  e.className = 'log' + (ok ? '' : ' err');
-  e.textContent = msg;
-  d.prepend(e);
-}
-
-function fixSV() {
-  show('SV: Sending fix...', true);
-  var body = JSON.stringify({
-    conversation_config: {
-      agent: {
-        prompt: { prompt: SV_PROMPT },
-        first_message: SV_FIRST
-      }
-    }
-  });
-  var xhr = new XMLHttpRequest();
-  xhr.open('PATCH', 'https://api.elevenlabs.io/v1/convai/agents/' + SV_ID);
-  xhr.setRequestHeader('xi-api-key', K);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.onload = function() {
-    var data = JSON.parse(xhr.responseText);
-    if (data.agent_id) {
-      show('SV SUCCESS! Swedish fixed! \u00e5\u00e4\u00f6 all correct now! Agent: ' + data.agent_id, true);
-    } else {
-      show('SV ERROR: ' + xhr.responseText, false);
-    }
-  };
-  xhr.onerror = function() {
-    show('SV FAILED - network error', false);
-  };
-  xhr.send(body);
-}
-</script>
+<h1>Swedish Fix - Disabled</h1>
+<p>This utility has been disabled for security reasons.</p>
+<p>To update the Swedish agent, please use the ElevenLabs dashboard directly.</p>
+<p>Swedish Agent ID: agent_0101kkyywztkehtbntx2a43b7bna</p>
+<p><a href="/" style="color:#0f9">Return to CYBERDOCTOR</a></p>
 </body>
 </html>
