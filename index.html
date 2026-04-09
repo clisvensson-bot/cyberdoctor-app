@@ -8,9 +8,63 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CYBERDOCTOR">
-<meta http-equiv="refresh" content="0;url=free-tier.html">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#0a0a1a;color:#e0e0ff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.logo{font-size:2.2em;font-weight:bold;color:#00ff88;letter-spacing:3px;margin-bottom:6px;text-align:center}
+.tagline{font-size:0.9em;color:#667;margin-bottom:40px;text-align:center}
+.widget-wrap{width:100%;max-width:520px;min-height:200px}
+.note{font-size:0.72em;color:#444466;text-align:center;margin-top:24px}
+.status{font-size:0.8em;color:#00cc66;text-align:center;margin-top:10px;display:none}
+</style>
 </head>
 <body>
-<script>window.location.replace("free-tier.html");</script>
+<div class="logo">&#x2695;&#xFE0F; CYBERDOCTOR</div>
+<div class="tagline">Dialadoctor.global &mdash; AI Health Assistant</div>
+<div class="widget-wrap" id="wc"></div>
+<div class="note">Speak in English, Polish or Swedish &mdash; the assistant responds in your language.</div>
+<div class="status" id="st"></div>
+
+<script src="https://unpkg.com/@elevenlabs/convai-widget-embed@1/dist/convai-widget.js" type="module" onerror="tryFallback()"></script>
+<script>
+function getLang(){
+var l=(navigator.language||navigator.userLanguage||"en").toLowerCase();
+if(l.startsWith("pl")) return "pl";
+if(l.startsWith("sv")) return "sv";
+return "en";
+}
+function getAgentId(lang){
+if(lang==="pl") return "agent_3401kkynw95qfvh9vjt0k1nk71xm";
+if(lang==="sv") return "agent_0101kkyywztkehtbntx2a43b7bna";
+return "agent_4801kksye0h7fwer3stvz64jg64c";
+}
+function mountWidget(){
+var lang=getLang();
+var agentId=getAgentId(lang);
+var w=document.createElement("elevenlabs-convai");
+w.setAttribute("agent-id",agentId);
+document.getElementById("wc").appendChild(w);
+}
+window.tryFallback=function(){
+document.getElementById("st").style.display="block";
+document.getElementById("st").textContent="Loading backup SDK...";
+var s=document.createElement("script");
+s.type="module";
+s.src="https://cdn.jsdelivr.net/npm/@elevenlabs/convai-widget-embed@1/dist/convai-widget.js";
+s.onload=function(){mountWidget();};
+s.onerror=function(){
+document.getElementById("st").textContent="Could not load widget. Please refresh.";
+};
+document.head.appendChild(s);
+};
+// Wait for custom element to be defined, then mount
+if(document.readyState==="loading"){
+document.addEventListener("DOMContentLoaded",function(){
+setTimeout(mountWidget,500);
+});
+} else {
+setTimeout(mountWidget,500);
+}
+</script>
 </body>
 </html>
