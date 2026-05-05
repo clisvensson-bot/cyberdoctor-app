@@ -13,38 +13,27 @@
 body{font-family:Arial,sans-serif;background:#0a0a1a;color:#e0e0ff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
 .logo{font-size:2.2em;font-weight:bold;color:#00ff88;letter-spacing:3px;margin-bottom:6px;text-align:center}
 .tagline{font-size:0.9em;color:#667;margin-bottom:40px;text-align:center}
-.widget-wrap{width:100%;max-width:520px;min-height:200px}
 .note{font-size:0.72em;color:#444466;text-align:center;margin-top:24px}
+</permit>
+
+<style>
 </style>
 </head>
 <body>
 <div class="logo">&#x2695;&#xFE0F; CYBERDOCTOR</div>
 <div class="tagline">Dialadoctor.global &mdash; AI Health Assistant</div>
-<div class="widget-wrap" id="wc"></div>
-<div class="note">Speak in English, Polish or Swedish &mdash; the assistant responds in your language.</div>
 
-<script src="https://unpkg.com/@elevenlabs/convai-widget-embed@1/dist/convai-widget.js" type="module"></script>
 <script>
-function getLang(){
-var l=(navigator.language||navigator.userLanguage||"en").toLowerCase();
-if(l.startsWith("pl")) return "pl";
-if(l.startsWith("sv")) return "sv";
-return "en";
-}
-function getAgentId(lang){
-if(lang==="pl") return "agent_3401kkynw95qfvh9vjt0k1nk71xm";
-if(lang==="sv") return "agent_0101kkyywztkehtbntx2a43b7bna";
-return "agent_4801kksye0h7fwer3stvz64jk64c";
-}
-function mountWidget(){
-var lang=getLang();
-var agentId=getAgentId(lang);
-var w=document.createElement("elevenlabs-convai");
-w.setAttribute("agent-id",agentId);
-document.getElementById("wc").appendChild(w);
-}
-if(document.readyState==="loading"){
-document.addEventListener("DOMContentLoaded",function(){setTimeout(mountWidget,500);});
-} else setTimeout(mountWidget,500);	</script>
+(function(){
+  var l=(navigator.language||navigator.userLanguage||"en").toLowerCase();
+  var id="agent_4801kksye0h7fwer3stvz64jg64c";
+  if(l.startsWith("pl")) id="agent_3401kkynw295qfvh9vjt0k1nk71xm";
+  else if(l.startsWith("sv")) id="agent_0101kkyywztkehtbntx2a43b7bna";
+  document.write('<elevenlabs-convai agent-id="'+id+'"></elevenlabs-convai>');
+})();
+</script>
+<script src="https://unpkg.com/@elevenlabs/convai-widget-embed@1/dist/convai-widget.js" async type="text/javascript"></script>
+
+<div class="note">Speak in English, Polish or Swedish &mdash; the assistant responds in your language.</div>
 </body>
 </html>
