@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-"{margin:0;padding:0;box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;background:#0a0a1a;color:#e0e0ff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
 .logo{font-size:2.2em;font-weight:bold;color:#00ff88;letter-spacing:3px;margin-bottom:6px}
 .tagline{font-size:0.9em;color:#667;margin-bottom:40px}
@@ -19,7 +19,13 @@ body{font-family:Arial,sans-serif;background:#0a0a1a;color:#e0e0ff;min-height:10
 <div class="logo">&#x2695;&#xFE0F; CYBERDOCTOR</div>
 <div class="tagline">Dialadoctor.global &mdash; AI Health Assistant</div>
 
-<elevenlabs-convai agent-id="agent_4801kksye0h7fwer3stvz64jg64c"></elevenlabs-convai>
+<script>
+var l=(navigator.language||navigator.userLanguage||'en').toLowerCase();
+var id='agent_4801kksye0h7fwer3stvz64jg64c';
+if(l.startsWith('pl'))id='agent_3401kkynw295qfvh9vjt0k1nk71xm';
+else if(l.startsWith('sv'))id='agent_0101kkyywztkehtbntx2a43b7bna';
+document.write('<elevenlabs-convai agent-id="'+id+'"></elevenlabs-convai>');
+</script>
 <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
 
 <div class="note">Speak in English, Polish or Swedish &mdash; the assistant responds in your language.</div>
